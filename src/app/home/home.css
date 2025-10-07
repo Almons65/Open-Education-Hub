@@ -12,11 +12,15 @@
 body, html{
   margin: 0;
   font-family: "Poppins", sans-serif;
+<<<<<<< HEAD
   background: linear-gradient( 135deg, 
     #fb923c,  /* Tailwind orange-400 */
     #60a5fa,  /* Tailwind blue-400 */
     #4ade80   /* Tailwind green-400 */
   );
+=======
+  background: black;
+>>>>>>> fcb2de47b0b1479539dbcd32cff468bc0c46d32f
   background-attachment: fixed;
   background-size: cover;
   overflow-y: auto;
@@ -116,6 +120,7 @@ header {
 
 /* Turn into X */
 .toggle-btn.close .bar1 {
+<<<<<<< HEAD
   transform: rotate(45deg) translateY(7.5px, 8px);
 }
 .toggle-btn.close .bar2 {
@@ -135,6 +140,23 @@ header {
 }
 .toggle-btn.open .bar3 {
   transform: rotate(-45deg) translate(7.5px, -8px);
+=======
+  transform: rotate(45deg) translate(7.5px, 8px);
+}
+.toggle-btn.close .bar2 {
+  opacity: 0;
+}
+.toggle-btn.close .bar3 {
+  transform: rotate(-45deg) translate(7.5px, -9px);
+}
+
+/* Reset when open */
+.toggle-btn.open .bar1,
+.toggle-btn.open .bar2,
+.toggle-btn.open .bar3 {
+  transform: none;
+  opacity: 1;
+>>>>>>> fcb2de47b0b1479539dbcd32cff468bc0c46d32f
 }
 
 /* Keep the toggle fully visible in both states */
@@ -178,6 +200,7 @@ header {
   background-color: var(--sidebar-hover);
 }
 
+<<<<<<< HEAD
 .menu-btn {
   display: flex;
   align-items: center;
@@ -204,6 +227,8 @@ header {
 }
 
 
+=======
+>>>>>>> fcb2de47b0b1479539dbcd32cff468bc0c46d32f
 .icons {
   display: flex;
   align-items: center;
