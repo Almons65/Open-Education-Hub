@@ -1,28 +1,17 @@
 "use client";
 import "./home.css";
 import { useState, useEffect } from "react";
-<<<<<<< HEAD
 import { useRouter } from "next/navigation";
-=======
->>>>>>> fcb2de47b0b1479539dbcd32cff468bc0c46d32f
 
 export default function HomePage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [particles, setParticles] = useState([]);
-<<<<<<< HEAD
   const router = useRouter();
 
   const menuItemsPrimary = [
     { label: "Home", icon:"icons/home.png", path: "/home"},
     { label: "Profile", icon: "icons/user.png", path: "/profile"},
     { label: "Logout", icon:"icons/logout.png", path: "/"},
-=======
-
-  const menuItemsPrimary = [
-    { label: "Home", icon:"icons/home.png" },
-    { label: "Profile", icon: "icons/user.png" },
-    { label: "Logout", icon:"icons/logout.png" },
->>>>>>> fcb2de47b0b1479539dbcd32cff468bc0c46d32f
   ];
 
   const [search, setSearch] = useState("");
@@ -136,7 +125,6 @@ export default function HomePage() {
         </header>
 
         <ul className="menu-bar">
-<<<<<<< HEAD
   <ul className="menu-links">
   {menuItemsPrimary.map((item) => (
     <li key={item.label} className="nav-link">
@@ -152,19 +140,6 @@ export default function HomePage() {
 </ul>
 
 </ul>
-=======
-          <ul className="menu-links">
-            {menuItemsPrimary.map((item) => (
-              <li key={item.label} className="nav-link">
-                <a href="#">
-                  <img src={item.icon} alt={item.label} className="menu-icon" />
-                  <span className="text">{item.label}</span>
-                </a>
-              </li>
-            ))}
-          </ul>
-        </ul>
->>>>>>> fcb2de47b0b1479539dbcd32cff468bc0c46d32f
       </div>
 
       {/* Main content */}
