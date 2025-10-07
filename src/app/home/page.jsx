@@ -2,6 +2,7 @@
 import "./home.css";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import PageTransition from "../components/PageTransition";
 
 export default function HomePage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -102,6 +103,7 @@ export default function HomePage() {
   };
 
   return (
+    <PageTransition>
     <div className="home-container">
       {/* Sidebar */}
       <div className={`sidebar ${sidebarOpen ? "open" : "close"}`}>
@@ -124,22 +126,22 @@ export default function HomePage() {
           </div>
         </header>
 
-        <ul className="menu-bar">
+<div className="menu-bar">
   <ul className="menu-links">
-  {menuItemsPrimary.map((item) => (
-    <li key={item.label} className="nav-link">
-      <button
-        className="menu-btn"
-        onClick={() => router.push(item.path)}
-      >
-        <img src={item.icon} alt={item.label} className="menu-icon" />
-        <span className="text">{item.label}</span>
-      </button>
-    </li>
-  ))}
-</ul>
+    {menuItemsPrimary.map((item) => (
+      <li key={item.label} className="nav-link">
+        <button
+          className="menu-btn"
+          onClick={() => router.push(item.path)}
+        >
+          <img src={item.icon} alt={item.label} className="menu-icon" />
+          <span className="text">{item.label}</span>
+        </button>
+      </li>
+    ))}
+  </ul>
+</div>
 
-</ul>
       </div>
 
       {/* Main content */}
@@ -215,6 +217,7 @@ export default function HomePage() {
         </div>
       </main>
     </div>
+    </PageTransition>
   );
 }
 

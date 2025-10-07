@@ -1,6 +1,8 @@
 "use client";
 import "./profile.css";
 import { useState, useEffect } from "react";
+import PageTransition from "../components/PageTransition";
+
 
 export default function ProfilePage() {
   const [user, setUser] = useState({
@@ -15,6 +17,7 @@ export default function ProfilePage() {
   }, []);
 
   return (
+    <PageTransition>
     <div className="profile-container">
       <div className="profile-card">
         <div className="profile-header">
@@ -40,5 +43,6 @@ export default function ProfilePage() {
         </div>
       </div>
     </div>
+    </PageTransition>
   );
 }
