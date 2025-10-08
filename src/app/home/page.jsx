@@ -1,15 +1,18 @@
 "use client";
 import "./home.css";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import PageTransition from "../components/PageTransition";
 
 export default function HomePage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [particles, setParticles] = useState([]);
+  const router = useRouter();
 
   const menuItemsPrimary = [
-    { label: "Home", icon:"icons/home.png" },
-    { label: "Profile", icon: "icons/user.png" },
-    { label: "Logout", icon:"icons/logout.png" },
+    { label: "Home", icon:"icons/home.png", path: "/home"},
+    { label: "Profile", icon: "icons/user.png", path: "/profile"},
+    { label: "Logout", icon:"icons/logout.png", path: "/"},
   ];
 
   const [search, setSearch] = useState("");
@@ -100,6 +103,7 @@ export default function HomePage() {
   };
 
   return (
+    <PageTransition>
     <div className="home-container">
       {/* Sidebar */}
       <div className={`sidebar ${sidebarOpen ? "open" : "close"}`}>
@@ -122,18 +126,22 @@ export default function HomePage() {
           </div>
         </header>
 
-        <ul className="menu-bar">
-          <ul className="menu-links">
-            {menuItemsPrimary.map((item) => (
-              <li key={item.label} className="nav-link">
-                <a href="#">
-                  <img src={item.icon} alt={item.label} className="menu-icon" />
-                  <span className="text">{item.label}</span>
-                </a>
-              </li>
-            ))}
-          </ul>
-        </ul>
+<div className="menu-bar">
+  <ul className="menu-links">
+    {menuItemsPrimary.map((item) => (
+      <li key={item.label} className="nav-link">
+        <button
+          className="menu-btn"
+          onClick={() => router.push(item.path)}
+        >
+          <img src={item.icon} alt={item.label} className="menu-icon" />
+          <span className="text">{item.label}</span>
+        </button>
+      </li>
+    ))}
+  </ul>
+</div>
+
       </div>
 
       {/* Main content */}
@@ -209,6 +217,7 @@ export default function HomePage() {
         </div>
       </main>
     </div>
+    </PageTransition>
   );
 }
 

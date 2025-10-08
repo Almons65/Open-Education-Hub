@@ -12,7 +12,11 @@
 body, html{
   margin: 0;
   font-family: "Poppins", sans-serif;
-  background: black;
+  background: linear-gradient( 135deg, 
+    #fb923c,  /* Tailwind orange-400 */
+    #60a5fa,  /* Tailwind blue-400 */
+    #4ade80   /* Tailwind green-400 */
+  );
   background-attachment: fixed;
   background-size: cover;
   overflow-y: auto;
@@ -51,30 +55,34 @@ header {
   justify-content: space-between;
   padding: 15px;
   border-bottom: 1px solid #ddd;
-  position: relative;
-  z-index: 10;
+  background: #fff;
 }
 
 .image-text {
   display: flex;
   align-items: center;
+  gap: 10px;
 }
 
 .image-text img {
   width: 90px;
   height: 60px;
   border-radius: 8px;
+  object-fit: cover;  
 }
 
 .text {
-  margin-left: 10px;
   display: flex;
   flex-direction: column;
+  justify-content: center; 
   transition: opacity var(--transition);
+  font-size: 15px;
+  color: #555;
 }
 
 .sidebar.close .text {
   opacity: 0;
+  transform: translateX(-15px);
 }
 
 .main {
@@ -112,21 +120,25 @@ header {
 
 /* Turn into X */
 .toggle-btn.close .bar1 {
-  transform: rotate(45deg) translate(7.5px, 8px);
+  transform: rotate(45deg) translateY(7.5px, 8px);
 }
 .toggle-btn.close .bar2 {
-  opacity: 0;
+  transform: rotate(45deg) translateY(7.5px, 8px);
+
 }
 .toggle-btn.close .bar3 {
-  transform: rotate(-45deg) translate(7.5px, -9px);
+  transform: rotate(-45deg) translateY(7.5px, -9px);
 }
 
 /* Reset when open */
-.toggle-btn.open .bar1,
-.toggle-btn.open .bar2,
+.toggle-btn.open .bar1 {
+  transform: rotate(45deg) translate(7.5px, 9px);
+}
+.toggle-btn.open .bar2 {
+  opacity: 0;
+}
 .toggle-btn.open .bar3 {
-  transform: none;
-  opacity: 1;
+  transform: rotate(-45deg) translate(7.5px, -8px);
 }
 
 /* Keep the toggle fully visible in both states */
@@ -146,48 +158,95 @@ header {
 .menu-links {
   list-style: none;
   padding: 0;
-  margin: 0 0 20px 0;
+  margin: 0;
 }
 
 .nav-link {
-  display: flex;
-  align-items: center;
-  margin: 5px 0;
-  overflow: hidden;
+  margin: 5px 0;  
 }
 
+
+.nav-link button,
 .nav-link a {
   display: flex;
   align-items: center;
-  padding: 10px 15px;
-  color: var(--sidebar-text);
-  text-decoration: none;
-  border-radius: 6px;
-  transition: background var(--transition), padding var(--transition);
+  width: 100%;
+  padding: 10px 18px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-radius: 10px;
+  transition: background 0.3s ease, transform 0.3s ease;
 }
 
-.nav-link a:hover {
+.nav-link button:focus,
+.nav-link a:focus {
+  outline: none;
+}
+
+.nav-link button:hover,
+.nav-link a:hover,
+.nav-link button:focus,
+.nav-link a:focus {
   background-color: var(--sidebar-hover);
+  transform: translateX(5px);
+  transition: background 0.3s ease, transform 0.3s ease;
 }
 
-.icons {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 40px;
-  flex-shrink: 0;
-  transition: transform var(--transition);
+.nav-link .menu-icon {
+  transition: transform 0.3s ease;
 }
+
+.nav-link:nth-child(1) .menu-icon { transition-delay: 0s; }
+.nav-link:nth-child(2) .menu-icon { transition-delay: 0.05s; }
+.nav-link:nth-child(3) .menu-icon { transition-delay: 0.1s; }
+.nav-link:nth-child(4) .menu-icon { transition-delay: 0.15s; }
+.nav-link:nth-child(5) .menu-icon { transition-delay: 0.2s; }
+.nav-link:nth-child(6) .menu-icon { transition-delay: 0.25s; }
+
+.nav-link:hover .menu-icon,
+.nav-link:focus .menu-icon {
+  transform: scale(1.2);
+}
+
+.nav-link .text {
+  transition: color 0.3s ease;
+}
+.nav-link:nth-child(1) .text { transition-delay: 0.05s; }
+.nav-link:nth-child(2) .text { transition-delay: 0.1s; }
+.nav-link:nth-child(3) .text { transition-delay: 0.15s; }
+.nav-link:nth-child(4) .text { transition-delay: 0.2s; }
+.nav-link:nth-child(5) .text { transition-delay: 0.25s; }
+.nav-link:nth-child(6) .text { transition-delay: 0.3s; }
+
+.nav-link:hover .text,
+.nav-link:focus .text {
+  color: #007bff;
+}
+
+.menu-icon {
+  width: 30px;
+  height: 30px;
+  margin-right: 12px;
+}
+
 
 .text {
-  margin-left: 10px;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 24px;         /* match icon height */
+  color: #555;
   white-space: nowrap;
   transition: opacity var(--transition), transform var(--transition);
 }
 
 .sidebar.close .text {
   opacity: 0;
-  transform: translateX(-20px);
+  transform: translateX(-15px);
+}
+
+.nav-link:hover .icons {
+  transform: scale(1.1);
 }
 
 /* Staggered text animation */
