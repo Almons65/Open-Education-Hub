@@ -1,3 +1,4 @@
+// app/layout.js (server)
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -14,17 +15,15 @@ const geistMono = Geist_Mono({
 export const metadata = {
   title: "Open Education Hub",
   description: "Open Learning source",
-    icons: {
-    icon: "/icons/OEH_logo.ico"
-},
+  icons: {
+    icon: "/icons/OEH_logo.ico",
+  },
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         {children}
       </body>
     </html>

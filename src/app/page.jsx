@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import PageTransition from "./components/PageTransition";
 import "./page.css";
 
 export default function AuthPage() {
@@ -40,6 +41,7 @@ export default function AuthPage() {
   };
 
   return (
+    <PageTransition>
     <div className="auth-page">
       <div className="particles">
         {[...Array(6)].map((_, i) => (
@@ -132,6 +134,7 @@ export default function AuthPage() {
         </div>
       </div>
     </div>
+    </PageTransition>
   );
 }
 
