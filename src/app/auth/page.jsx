@@ -1,10 +1,10 @@
-import HomePage from "./HomePage";
+import AuthPage from "./AuthPage";
 import ClientGate from "../components/ClientGate";
 
 export default function Home() {
   return (
     <ClientGate>
-      <HomePage />
+      <AuthPage />
     </ClientGate>
   );
 }
