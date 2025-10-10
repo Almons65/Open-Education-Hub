@@ -1,0 +1,356 @@
+/* auth.module.css - CSS Module (local class names only) */
+@keyframes gradientMove {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Page + gradient background (preserved) */
+.auth-page {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  background: linear-gradient(
+    135deg,
+    #fb923c, /* Tailwind orange-400 */
+    #60a5fa, /* Tailwind blue-400 */
+    #4ade80  /* Tailwind green-400 */
+  );
+    background-size: 300% 300%;
+  animation: gradientMove 12s ease infinite;
+}
+
+/* Particles container */
+.particles {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.particle {
+  position: absolute;
+  border-radius: 50%;
+  width: 10px;
+  height: 10px;
+  background: rgba(255, 255, 255, 0.15);
+  animation: auth-drift linear infinite;
+}
+
+/* Example nth-child timings — you set the positions inline in React, so durations only */
+.particle:nth-child(1) { animation-duration: 18s; }
+.particle:nth-child(2) { animation-duration: 22s; }
+.particle:nth-child(3) { animation-duration: 25s; }
+.particle:nth-child(4) { animation-duration: 20s; }
+.particle:nth-child(5) { animation-duration: 28s; }
+.particle:nth-child(6) { animation-duration: 24s; }
+
+@keyframes auth-drift {
+  0%   { transform: translate(0,0); opacity: 1; }
+  50%  { transform: translate(30px, -30px); opacity: 0.7; }
+  100% { transform: translate(0,0); opacity: 1; }
+}
+
+/* Card container and card */
+.auth-card-container {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh; /* center vertically in viewport */
+  pointer-events: auto;
+}
+
+.auth-card {
+  width: 420px;
+  max-width: 92%;
+  background: linear-gradient(145deg, #ffffff, #f0f0ff);
+  border-radius: 22px;
+  padding: 28px 26px 34px 26px;
+  box-shadow: 0 15px 40px rgba(0,0,0,0.22);
+  transition: height 0.28s ease, transform 0.18s ease;
+  overflow: hidden;
+}
+
+/* Orb + logo */
+.orb-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+
+.orb-with-image {
+  position: relative;
+  width: 220px;
+  height: 180px;
+}
+
+.orb-svg {
+  position: absolute;
+  top: -26%;
+  right: 23%;
+  width: 150%;
+  height: 150%;
+  display: block;
+}
+
+.orbRotate {
+  transform-origin: center;
+  animation: auth-rotateOrb 20s linear infinite;
+}
+
+.orbBreath {
+  transform-origin: center;
+  animation: auth-breathe 2s ease-in-out infinite alternate;
+}
+
+/* small breathing & rotate effects */
+@keyframes auth-rotateOrb {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes auth-breathe {
+  0%   { transform: scale(0.95); }
+  50%  { transform: scale(1.05); }
+  100% { transform: scale(0.95); }
+}
+
+/* orb-side image positioned over the SVG center */
+.orb-side-img {
+  position: absolute;
+  top: 50%;
+  left: 80%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Tabs */
+.auth-tabs {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 8px;
+  margin-bottom: 18px;
+  border-bottom: 2px solid rgba(0,0,0,0.06);
+  gap: 4px;
+}
+
+.auth-tabs > div {
+  padding: 10px 12px;
+  cursor: pointer;
+  color: #9aa0ac;
+  font-weight: 700;
+  transition: color 0.18s ease, transform 0.18s ease;
+  user-select: none;
+  font-size: 18px;
+}
+
+.auth-tabs > div:hover {
+  color: #6c5ce7;
+  transform: translateY(-2px);
+}
+
+.active {
+  color: #6c5ce7;
+  position: relative;
+}
+
+/* Forms - stacked with visibility classes */
+.auth-form {
+  display: none;
+  flex-direction: column;
+  gap: 20px;
+  position: relative;
+}
+
+.visible {
+  display: flex;
+}
+
+/* Titles */
+.form-title {
+  text-align: center;
+  font-size: 26px;
+  font-weight: 700;
+  margin: 0;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+/* Input groups */
+.input-group {
+  position: relative;
+  margin: 0 auto;
+  width: 86%;
+}
+
+.input-group input[type="text"],
+.input-group input[type="email"],
+.input-group input[type="password"] {
+  width: 100%;
+  padding: 12px 40px 12px 12px;
+  border: none;
+  border-bottom: 2px solid rgba(0,0,0,0.12);
+  background: transparent;
+  font-size: 14px;
+  font-weight: 600;
+  outline: none;
+  color: #222;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+.input-group label {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  pointer-events: none;
+  font-size: 13px;
+  color: #9aa0ac;
+  font-weight: 700;
+  transition: transform 0.18s ease, font-size 0.18s ease, top 0.18s ease;
+  background: transparent;
+}
+
+/* When input is focused or has content, reduce label — handled visually by your markup using placeholder logic */
+.input-group input:focus + label,
+.input-group input:not(:placeholder-shown) + label {
+  top: -12px;
+  font-size: 12px;
+  color: #6c5ce7;
+}
+
+/* underline bar (animated) */
+.underline {
+  position: absolute;
+  bottom: 0px;
+  left: 0px;
+  height: 2px;
+  width: 0%;
+  background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+  transition: width 0.22s ease;
+}
+
+.input-group input:focus ~ .underline,
+.input-group input:not(:placeholder-shown) ~ .underline {
+  width: 100%;
+}
+
+/* Input icons (user / email) */
+.user-icon {
+  position: absolute;
+  right: 1%;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 25px;
+  cursor: pointer;
+}
+
+.input-icon {
+  position: absolute;
+  right: 0%;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 20px;
+  cursor: pointer;
+}
+
+.email-icon {
+  position: absolute;
+  right: 1%;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 20px;
+  cursor: pointer;
+}
+
+
+
+/* Checkbox group */
+.checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 86%;
+  margin: 0 auto;
+}
+
+.checkbox-label {
+  font-weight: 700;
+  color: #333;
+  font-size: 0.95rem;
+}
+
+/* Submit button wrapper + states */
+.submit-btn-wrapper {
+  position: relative;
+  width: 86%;
+  margin: 0 auto;
+  height: 48px;
+}
+
+.submit-btn {
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #6c5ce7, #a29bfe); /* normal gradient */
+  color: #fff;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+
+.submit-btn:hover {
+  background: linear-gradient(135deg, #5a4bd7, #8f85f0);
+  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.25);
+  transform: translateY(-3px) scale(1.04);
+  transition: background 0.3s ease, transform 0.3s ease;
+}
+
+.submit-btn:active {
+  transform: translateY(0px) scale(0.99);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.18);
+}
+/* Loading gif positioned inside wrapper */
+.loading-gif {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Fade helpers */
+.fade-in { opacity: 1; transition: opacity 0.2s ease; }
+.fade-out { opacity: 0; transition: opacity 0.2s ease; }
+
+/* small responsive tweaks */
+@media (max-width: 480px) {
+  .auth-card {
+    width: 92%;
+    padding: 20px;
+    border-radius: 16px;
+  }
+  .input-group { width: 100%; }
+  .submit-btn-wrapper { width: 100%; }
+}
