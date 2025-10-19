@@ -1,0 +1,311 @@
+@keyframes gradientMove {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Outer Container with Animated Gradient */
+.courseDetailContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  width: 100%;
+  background: linear-gradient(120deg, #ff9966, #66ccff, #66ff99);
+  background-size: 300% 300%;
+  animation: gradientMove 12s ease infinite;
+  overflow: hidden;
+  font-family: "Poppins", sans-serif;
+  padding: 1rem;
+}
+
+/* Inner Card */
+.courseDetailCard {
+  width: 100%;
+  max-width: 1000px;
+  background-color: #ffffff;
+  border-radius: 1rem;
+  padding: 2rem;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.courseDetailCard:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+}
+
+/* Course Title */
+.courseTitle {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: #111827;
+}
+
+/* Difficulty Label */
+.courseDifficulty {
+  margin-bottom: 1.2rem;
+  font-weight: 600;
+  color: black;
+}
+
+.beginner {
+  color: #0a7b16; /* green */
+}
+
+.intermediate {
+  color: #c37c00; /* orange */
+}
+
+.advanced {
+  color: #c40000; /* red */
+}
+
+/* Subjects Section */
+.subjects {
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.subjectTag {
+  background-color: #eef2ff;
+  color: #1e40af;
+  padding: 0.45rem 0.8rem;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.subjectTag:hover {
+  background-color: #dbe4ff;
+  transform: scale(1.05);
+}
+
+/* Description (optional if added later) */
+.description {
+  margin-top: 1rem;
+  line-height: 1.6;
+  color: #374151;
+  font-size: 1rem;
+}
+
+/* Favorite Button */
+.favoriteBtn {
+  display: block;
+  padding: 0.8rem 1.5rem;
+  border: none;
+  border-radius: 0.7rem;
+  font-weight: 600;
+  margin-top: 20px;
+  font-size: 1rem;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.25s ease-in-out;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+}
+
+.favoriteBtn.add {
+  background-color: #ff4d4d;
+}
+
+.favoriteBtn.add:hover {
+  background-color: #e04343;
+  transform: translateY(-2px);
+}
+
+.favoriteBtn.remove {
+  background-color: #9ca3af;
+}
+
+.favoriteBtn.remove:hover {
+  background-color: #6b7280;
+  transform: translateY(-2px);
+}
+
+
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .courseDetailCard {
+    padding: 1.5rem;
+  }
+
+  .courseTitle {
+    font-size: 1.6rem;
+  }
+
+  .favoriteBtn {
+    width: 100%;
+    text-align: center;
+  }
+
+  .backBtn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .courseTitle {
+    font-size: 1.4rem;
+  }
+
+  .subjectTag {
+    font-size: 0.8rem;
+    padding: 0.35rem 0.7rem;
+  }
+}
+
+.courseDescription {
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.15);
+  color: #222;
+  line-height: 1.6;
+  overflow: hidden;
+  transition: max-height 0.6s ease;
+}
+
+.courseDescription h3 {
+  font-size: 18px;
+  margin-bottom: 8px;
+  color: #111;
+}
+
+/* Toggle button */
+.toggleDescBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 8px;
+  background-color: #0070f3;
+  color: white;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.2s ease;
+}
+
+.toggleDescBtn:hover {
+  background-color: #005bb5;
+  transform: translateY(-2px);
+}
+
+/* Arrow rotation */
+.arrow {
+  display: inline-block;
+  transition: transform 0.4s ease;
+}
+
+.arrowUp {
+  transform: rotate(180deg);
+}
+
+/* Continuous spinning while expanding/collapsing */
+.spinning {
+  animation: spinArrow 0.6s linear;
+}
+
+@keyframes spinArrow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Text label slide/fade */
+.toggleLabel {
+  display: inline-block;
+  transition: transform 0.4s ease, opacity 0.4s ease;
+}
+
+.arrowUp + .toggleLabel {
+  transform: translateY(-2px);
+  opacity: 0.9;
+}
+
+.toggleDescBtn:hover .toggleLabel {
+  transform: translateY(-1px);
+  opacity: 1;
+}
+
+/* Container for preview video + button */
+.previewContainer {
+  margin-top: 16px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* center horizontally */
+  width: 100%;
+}
+
+/* Label above video */
+.previewLabel {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #111827;
+  text-align: center;
+}
+
+/* Video wrapper */
+.videoContainer {
+  width: 600px;
+  max-width: 100%; /* responsive */
+  max-height: 600px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  margin-bottom: 12px; /* space below video for button */
+}
+
+/* Video itself */
+.courseVideo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: 12px;
+}
+
+/* Attend Course button */
+.attendBtn {
+  padding: 10px 20px;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  background-color: #0070f3;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.2s ease;
+}
+
+.attendBtn:hover {
+  background-color: #005bb5;
+  transform: translateY(-2px);
+}
+
+
+@media (max-width: 768px) {
+  .videoContainer {
+    width: 100%;
+    max-height: 400px;
+  }
+}
+
+@media (max-width: 480px) {
+  .videoContainer {
+    max-height: 250px;
+  }
+}

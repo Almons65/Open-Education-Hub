@@ -330,11 +330,11 @@
 /* Loading gif positioned inside wrapper */
 .loading-gif {
   position: absolute;
-  right: 10px;
+  right: 15%;
   top: 50%;
   transform: translateY(-50%);
-  width: 36px;
-  height: 24px;
+  width: 220px;
+  height: 204px;
   display: flex;
   align-items: center;
   justify-content: center;
