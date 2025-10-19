@@ -13,42 +13,93 @@ export default function HomePage() {
   const menuItemsPrimary = [
     { label: "Home", icon: "/icons/home.png", path: "/home" },
     { label: "Profile", icon: "/icons/user.png", path: "/profile" },
+    { label: "Ranking", icon: "/icons/ranking.png", path: "/ranking" },
     { label: "Logout", icon: "/icons/logout.png", path: "/auth" },
   ];
 
   const [search, setSearch] = useState("");
   const [difficulty, setDifficulty] = useState("");
   const [subjects, setSubjects] = useState({
-    subject1: false,
-    subject2: false,
-    subject3: false,
-    subject4: false,
-    subject5: false,
-    subject6: false,
+    Python: false,
+    Ai: false,
+    Physics: false,
+    Biology: false,
+    Calculus: false,
   });
 
   const courses = [
-    { id: "AAA001", name: "Course a", difficulty: "Beginner", subjects: ["subject1"] },
-    { id: "AAA002", name: "Course b", difficulty: "Beginner", subjects: ["subject2"] },
-    { id: "BAA001", name: "Course c", difficulty: "Intermediate", subjects: ["subject3"] },
-    { id: "BBA001", name: "Course d", difficulty: "Advanced", subjects: ["subject4"] },
-    { id: "BBA002", name: "Course e", difficulty: "Intermediate", subjects: ["subject5"] },
-    { id: "CAA100", name: "Course f", difficulty: "Advanced", subjects: ["subject6"] },
-    { id: "EDD098", name: "Course g", difficulty: "Beginner", subjects: ["subject5"] },
-    { id: "DFE050", name: "Course h", difficulty: "Intermediate", subjects: ["subject1"] },
-    { id: "AAA003", name: "Course i", difficulty: "Intermediate", subjects: ["subject1"] },
-    { id: "AAA004", name: "Course j", difficulty: "Beginner", subjects: ["subject2"] },
-    { id: "BAA005", name: "Course k", difficulty: "Advanced", subjects: ["subject3"] },
-    { id: "BBA006", name: "Course l", difficulty: "Advanced", subjects: ["subject4"] },
-    { id: "BBA007", name: "Course m", difficulty: "Intermediate", subjects: ["subject5"] },
-    { id: "CAA200", name: "Course n", difficulty: "Advanced", subjects: ["subject6"] },
-    { id: "EDD099", name: "Course o", difficulty: "Beginner", subjects: ["subject5"] },
-    { id: "DFE051", name: "Course p", difficulty: "Intermediate", subjects: ["subject1"] },
-    { id: "CAA201", name: "Course q", difficulty: "Advanced", subjects: ["subject6"] },
-    { id: "EDD100", name: "Course r", difficulty: "Beginner", subjects: ["subject5"] },
-    { id: "DFE052", name: "Course s", difficulty: "Intermediate", subjects: ["subject1"] },
-    { id: "DFE053", name: "Course t", difficulty: "Advanced", subjects: ["subject1"] },
-  ];
+    { id: "AAA001", name: "Introduction to Programming", difficulty: "Beginner", subjects: ["Python"], totalLectures: 3, badge: "/badges/ITP_badge.png" },
+    { id: "AAA002", name: "Calculus 1", difficulty: "Intermediate", subjects: ["Calculus"], totalLectures: 3, badge: "/badges/Cal_Badge.png" },
+    { id: "BAA001", name: "Electromagnetic Induction", difficulty: "Intermediate", subjects: ["Physics"], totalLectures: 3, badge: "/badges/Electromag_Badge.png" },
+    { id: "BBA001", name: "Introduction to Deep Learning", difficulty: "Advanced", subjects: ["Ai"], totalLectures: 3, badge: "/badges/ITDL_Badge.png" },
+    { id: "BBA002", name: "Ecology", difficulty: "Intermediate", subjects: ["Biology"], totalLectures: 3, badge: "/badges/Eco_Badge.png" },
+    { id: "CAA100", name: "Electrodynamics", difficulty: "Advanced", subjects: ["Physics"], totalLectures: 3, badge: "/badges/ElectroDyn_Badge.png" },
+];
+
+  const [courseProgress, setCourseProgress] = useState({});
+
+  // Fetch saved progress from localStorage on mount
+  useEffect(() => {
+  // Fetch saved progress from localStorage
+  const savedProgress = JSON.parse(localStorage.getItem("courseProgress"));
+  if (savedProgress) {
+    setCourseProgress(savedProgress);
+  } else {
+    // Initialize with an empty progress object if no saved progress exists
+    localStorage.setItem("courseProgress", JSON.stringify({}));
+    setCourseProgress({});
+  }
+}, []);
+
+  // Function to calculate course progress
+const calculateProgress = (courseId) => {
+  const course = courses.find((course) => course.id === courseId);
+  const totalLectures = course ? course.totalLectures : 0;
+  
+  // Get the completed lectures from courseProgress
+  const completedLectures = courseProgress[courseId]?.completedLectures || [];
+  
+  // Calculate the percentage of completed lectures
+  const progress = (completedLectures.length / totalLectures) * 100;
+  return progress;
+};
+
+const finishLecture = (courseId, lectureNumber) => {
+  // Get the current progress data for the course from localStorage
+  let courseProgressData = JSON.parse(localStorage.getItem("courseProgress")) || {};
+
+  // Ensure that courseProgressData[courseId] is an object
+  if (typeof courseProgressData[courseId] !== "object" || courseProgressData[courseId] === null) {
+    // Initialize it as an object with completedLectures as an array if it's not already
+    courseProgressData[courseId] = { completedLectures: [] };
+  }
+
+  // Ensure that completedLectures is an array for the given course
+  if (!Array.isArray(courseProgressData[courseId].completedLectures)) {
+    console.error(`Expected an array for completedLectures, but got:`, courseProgressData[courseId].completedLectures);
+    courseProgressData[courseId].completedLectures = []; // Reset to an empty array
+  }
+
+  // Check if the lecture is already completed, if not, mark it as completed
+  if (!courseProgressData[courseId].completedLectures.includes(lectureNumber)) {
+    courseProgressData[courseId].completedLectures.push(lectureNumber); // Add the completed lecture
+  }
+
+  const course = courses.find((course) => course.id === courseId);
+  const progress = calculateProgress(courseId);
+  if (progress === 100 && !courseProgressData[courseId].badgeEarned) {
+    courseProgressData[courseId].badgeEarned = course.badge;  // Assign the badge image URL when completed
+    console.log(`Congratulations! You earned the badge!`);
+  }
+
+  // Save the updated courseProgressData back to localStorage
+  localStorage.setItem("courseProgress", JSON.stringify(courseProgressData));
+
+  // Trigger a re-render or update UI if needed
+  setCourseProgress(courseProgressData);
+};
+
+
 
   useEffect(() => {
     const baseParticles = [
@@ -191,27 +242,52 @@ export default function HomePage() {
 
           <p className={styles.courseCount}>{filteredCourses.length} courses in total</p>
 
-          <div className={styles.courseGrid}>
-            {filteredCourses.map((course) => (
-              <div
-                key={course.id}
-                className={styles.courseCard}
-                onClick={() => alert(`Opening ${course.name}`)}
-              >
-                <h3 className={styles.courseId}>{course.id}</h3>
-                <p className={styles.courseName}>{course.name}</p>
-                <div className={styles.tags}>
-                  <span className={`${styles.tag} ${styles[course.difficulty.toLowerCase()]}`}>
-                    {course.difficulty}
-                  </span>
-                  {course.subjects.map((s) => (
-                    <span key={s} className={`${styles.tag} ${styles.subject}`}>
-                      {s}
+         <div className={styles.courseGrid}>
+            {filteredCourses.map((course) => {
+              const progress = calculateProgress(course.id);
+              const isCompleted = progress === 100;
+
+              return (
+                <div
+                  key={course.id}
+                  className={styles.courseCard}
+                  onClick={() => {
+                    finishLecture(course.id, 1);
+                    router.push(`/courses/${course.id}`);
+                  }}
+                >
+                  <h3 className={styles.courseId}>{course.id}</h3>
+                  <p className={styles.courseName}>{course.name}</p>
+                  <div className={styles.tags}>
+                    <span className={`${styles.tag} ${styles[course.difficulty.toLowerCase()]}`}>
+                      {course.difficulty}
                     </span>
-                  ))}
+                    {course.subjects.map((s) => (
+                      <span key={s} className={`${styles.tag} ${styles.subject}`}>
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+
+                  {/* Progress Bar */}
+                  <div className={styles.progressContainer}>
+                    <div
+                      className={styles.progressBar}
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+                  <p className={styles.percentlabel}>{Math.round(progress)}% Completed</p>
+
+                  {isCompleted ? (
+                    <div className={styles.badge}>
+                      <p>🏅 Course Completed!</p>
+                    </div>
+                  ) : (
+                    <p className={styles.tracklabel}>Keep going!</p>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </main>
       </div>
