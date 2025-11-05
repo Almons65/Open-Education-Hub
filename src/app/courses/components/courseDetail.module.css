@@ -1,234 +1,282 @@
+/* Defines the animation for the moving background gradient */
 @keyframes gradientMove {
+  /* Start position */
   0% {
     background-position: 0% 50%;
   }
+  /* Mid-point position */
   50% {
     background-position: 100% 50%;
   }
+  /* End position (loops back to start) */
   100% {
     background-position: 0% 50%;
   }
 }
 
-/* Outer Container with Animated Gradient */
-.courseDetailContainer {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  width: 100%;
+/* * Styles applied globally to the <body> tag.
+ * This sets the animated gradient background for the entire page.
+ */
+:global(body) {
+  background-color: #ffffff; /* Fallback for browsers that don't support gradients */
+  /* The gradient with multiple color stops */
   background: linear-gradient(120deg, #ff9966, #66ccff, #66ff99);
-  background-size: 300% 300%;
+  background-size: 300% 300%; /* Makes the gradient larger so it can move */
+  /* Applies the 'gradientMove' animation */
   animation: gradientMove 12s ease infinite;
-  overflow: hidden;
-  font-family: "Poppins", sans-serif;
-  padding: 1rem;
+  height: 120vh; /* Ensures the background covers the page, even with scrolling */
 }
 
-/* Inner Card */
+/* * Main container that wraps the course detail card.
+ * It centers the card on the page.
+ */
+.courseDetailContainer {
+  display: flex; /* Uses flexbox for centering */
+  justify-content: center; /* Centers the card horizontally */
+  align-items: center; /* Centers the card vertically */
+  width: 100%;
+  overflow: hidden; /* Hides any content that might overflow */
+  font-family: "Poppins", sans-serif; /* Sets a custom font */
+  padding: 1rem; /* Adds some spacing around the card */
+}
+
+/* The main white card that holds all the course content */
 .courseDetailCard {
   width: 100%;
-  max-width: 1000px;
-  background-color: #ffffff;
-  border-radius: 1rem;
-  padding: 2rem;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+  max-width: 1000px; /* Limits the card's width on large screens */
+  background-color: #ffffff; /* White background */
+  border-radius: 1rem; /* Rounded corners */
+  padding: 2rem; /* Inner spacing */
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08); /* Soft shadow */
+  /* Smooth transition for the hover effect */
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
+/* A subtle "lift" effect when hovering over the card */
 .courseDetailCard:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+  transform: translateY(-3px); /* Lifts the card up slightly */
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12); /* A slightly larger shadow */
 }
 
-/* Course Title */
+/* The main title of the course */
 .courseTitle {
   font-size: 2rem;
   font-weight: 700;
-  margin-bottom: 0.5rem;
-  color: #111827;
+  margin-bottom: 0.5rem; /* Space below the title */
+  color: #111827; /* Dark text color */
 }
 
-/* Difficulty Label */
+/* The "Difficulty:" text and its value */
 .courseDifficulty {
-  margin-bottom: 1.2rem;
+  margin-bottom: 1.2rem; /* Space below the difficulty */
   font-weight: 600;
   color: black;
 }
 
+/* Specific color for "Beginner" difficulty */
 .beginner {
   color: #0a7b16; /* green */
 }
 
+/* Specific color for "Intermediate" difficulty */
 .intermediate {
   color: #c37c00; /* orange */
 }
 
+/* Specific color for "Advanced" difficulty */
 .advanced {
   color: #c40000; /* red */
 }
 
-/* Subjects Section */
+/* Container for the subject tags (e.g., "Python", "Physics") */
 .subjects {
   margin-bottom: 1.5rem;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
+  display: flex; /* Arranges tags in a row */
+  flex-wrap: wrap; /* Allows tags to wrap to the next line */
+  gap: 0.4rem; /* Spacing between tags */
 }
 
+/* Individual subject tag "pill" */
 .subjectTag {
-  background-color: #eef2ff;
-  color: #1e40af;
+  background-color: #e0f2ff; /* Light blue background */
+  color: #1e40af; /* Dark blue text */
   padding: 0.45rem 0.8rem;
-  border-radius: 0.5rem;
+  border-radius: 0.5rem; /* Rounded pill shape */
   font-size: 0.9rem;
   font-weight: 500;
-  transition: transform 0.2s ease, background-color 0.2s ease;
+  /* Smooth transition for the hover effect */
+  transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
+/* Hover effect for the subject tag */
 .subjectTag:hover {
-  background-color: #dbe4ff;
-  transform: scale(1.05);
+  background-color: #cce7ff; /* Slightly darker blue */
+  transform: scale(1.05); /* Makes the tag slightly larger */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-/* Description (optional if added later) */
+/* Style for the description text (used inside the accordion) */
 .description {
   margin-top: 1rem;
-  line-height: 1.6;
-  color: #374151;
+  line-height: 1.6; /* Line spacing */
+  color: #374151; /* Dark gray text */
   font-size: 1rem;
 }
 
-/* Favorite Button */
+/* Base style for the "Add/Remove Favorite" button */
 .favoriteBtn {
-  display: block;
+  display: block; /* Makes it take up its own line */
   padding: 0.8rem 1.5rem;
   border: none;
   border-radius: 0.7rem;
   font-weight: 600;
-  margin-top: 20px;
+  margin-top: 20px; /* Space above the button */
   font-size: 1rem;
-  color: #fff;
+  color: #fff; /* White text */
   cursor: pointer;
+  /* Smooth transition for all property changes */
   transition: all 0.25s ease-in-out;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); /* Subtle shadow */
 }
 
+/* Style for the button when it's in the "Add" state */
 .favoriteBtn.add {
-  background-color: #ff4d4d;
+  background: linear-gradient(45deg, #ff4d4d, #ff6b6b); /* Red gradient */
 }
 
+/* Hover effect for the "Add" button */
 .favoriteBtn.add:hover {
-  background-color: #e04343;
-  transform: translateY(-2px);
+  background: linear-gradient(45deg, #e04343, #f25a5a); /* Darker red */
+  box-shadow: 0 6px 16px rgba(255, 77, 77, 0.25); /* Red glow */
+  transform: translateY(-2px); /* Lift */
 }
 
+/* Style for the button when it's in the "Remove" state */
 .favoriteBtn.remove {
-  background-color: #9ca3af;
+  background: linear-gradient(45deg, #9ca3af, #b0b9c6); /* Gray gradient */
 }
 
+/* Hover effect for the "Remove" button */
 .favoriteBtn.remove:hover {
-  background-color: #6b7280;
-  transform: translateY(-2px);
+  background: linear-gradient(45deg, #878f9a, #a1aac0); /* Darker gray */
+  transform: translateY(-2px); /* Lift */
+  box-shadow: 0 6px 16px rgba(156, 163, 175, 0.25); /* Gray glow */
 }
 
-
-
-/* Responsive Design */
+/* --- Responsive Design for tablets --- */
 @media (max-width: 768px) {
+  /* Reduce padding on the card */
   .courseDetailCard {
     padding: 1.5rem;
   }
 
+  /* Make the title smaller */
   .courseTitle {
     font-size: 1.6rem;
   }
 
+  /* Make buttons take up the full width */
   .favoriteBtn {
     width: 100%;
     text-align: center;
   }
 
+  /* (This rule is not used by any element in the HTML) */
   .backBtn {
     width: 100%;
   }
 }
 
+/* --- Responsive Design for mobile phones --- */
 @media (max-width: 480px) {
+  /* Make the title even smaller */
   .courseTitle {
     font-size: 1.4rem;
   }
 
+  /* Make the subject tags smaller */
   .subjectTag {
     font-size: 0.8rem;
     padding: 0.35rem 0.7rem;
   }
 }
 
+/* The accordion container for the description */
 .courseDescription {
   margin-top: 16px;
-  padding: 16px;
+  padding: 16px; /* Padding for the text inside */
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.15); /* Semi-transparent white */
   color: #222;
   line-height: 1.6;
-  overflow: hidden;
-  transition: max-height 0.6s ease;
+  overflow: hidden; /* Hides the text when 'max-height' is 0 */
+  /* This transition animates the 'max-height' change (from JS) */
+  transition: max-height 0.5s ease;
 }
 
+/* The "Description" title inside the accordion */
 .courseDescription h3 {
   font-size: 18px;
   margin-bottom: 8px;
   color: #111;
 }
 
-/* Toggle button */
+/* The "Show More / Show Less" button */
 .toggleDescBtn {
-  display: flex;
+  display: flex; /* Aligns the arrow and text */
   align-items: center;
-  gap: 8px;
+  gap: 8px; /* Space between arrow and text */
   margin-top: 10px;
   padding: 8px 14px;
   border: none;
   border-radius: 8px;
-  background-color: #0070f3;
+  background: linear-gradient(45deg, #0070f3, #00C6FF); /* Blue gradient */
   color: white;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.3s ease, transform 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  /* Smooth transitions for hover */
+  transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 
+/* Hover effect for the "Show More" button */
 .toggleDescBtn:hover {
-  background-color: #005bb5;
-  transform: translateY(-2px);
+  background: linear-gradient(45deg, #006ae6, #00b2e6); /* Darker blue */
+  transform: translateY(-2px); /* Lift */
+  box-shadow: 0 6px 16px rgba(0, 112, 243, 0.25); /* Blue glow */
 }
 
-/* Arrow rotation */
+/* The arrow icon (▼) */
 .arrow {
   display: inline-block;
+  /* Animates the rotation */
   transition: transform 0.4s ease;
 }
 
+/* This class is added by JS to rotate the arrow */
 .arrowUp {
   transform: rotate(180deg);
 }
 
-/* Continuous spinning while expanding/collapsing */
+/* This class is added by JS to make the arrow spin */
 .spinning {
   animation: spinArrow 0.6s linear;
 }
 
+/* The keyframes for the spinning animation */
 @keyframes spinArrow {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
 
-/* Text label slide/fade */
+/* The "Show More" / "Show Less" text label */
 .toggleLabel {
   display: inline-block;
+  /* Animates the text movement */
   transition: transform 0.4s ease, opacity 0.4s ease;
 }
 
+/* (These rules for the label are not very noticeable) */
 .arrowUp + .toggleLabel {
   transform: translateY(-2px);
   opacity: 0.9;
@@ -239,17 +287,17 @@
   opacity: 1;
 }
 
-/* Container for preview video + button */
+/* Container for the preview video and "Attend Course" button */
 .previewContainer {
   margin-top: 16px;
   margin-bottom: 16px;
   display: flex;
-  flex-direction: column;
-  align-items: center; /* center horizontally */
+  flex-direction: column; /* Stacks items vertically */
+  align-items: center; /* Centers items horizontally */
   width: 100%;
 }
 
-/* Label above video */
+/* The "Preview" text label above the video */
 .previewLabel {
   font-size: 1rem;
   font-weight: 600;
@@ -258,54 +306,59 @@
   text-align: center;
 }
 
-/* Video wrapper */
+/* The wrapper around the <video> element */
 .videoContainer {
-  width: 600px;
-  max-width: 100%; /* responsive */
+  width: 600px; /* Fixed width */
+  max-width: 100%; /* Makes it responsive (won't overflow on small screens) */
   max-height: 600px;
   border-radius: 12px;
-  overflow: hidden;
+  overflow: hidden; /* Hides parts of the video to maintain the rounded corners */
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  margin-bottom: 12px; /* space below video for button */
+  margin-bottom: 12px; /* Space between video and button */
 }
 
-/* Video itself */
+/* The <video> element itself */
 .courseVideo {
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  display: block;
-  border-radius: 12px;
+  object-fit: cover; /* Ensures the video fills the container */
+  display: block; /* Removes any default bottom spacing */
+  border-radius: 12px; /* Redundant but good for fallback */
 }
 
-/* Attend Course button */
+/* The "Attend Course" button */
 .attendBtn {
   padding: 10px 20px;
   font-size: 1rem;
   font-weight: 600;
   border: none;
   border-radius: 8px;
-  background-color: #0070f3;
+  background: linear-gradient(45deg, #0070f3, #00C6FF); /* Blue gradient */
   color: #fff;
   cursor: pointer;
-  transition: background 0.3s ease, transform 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  /* Smooth transitions for hover */
+  transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 
+/* Hover effect for the "Attend Course" button */
 .attendBtn:hover {
-  background-color: #005bb5;
-  transform: translateY(-2px);
+  background: linear-gradient(45deg, #006ae6, #00b2e6); /* Darker blue */
+  transform: translateY(-2px); /* Lift */
+  box-shadow: 0 6px 16px rgba(0, 112, 243, 0.25); /* Blue glow */
 }
 
-
+/* --- Responsive Design for tablets (for video) --- */
 @media (max-width: 768px) {
   .videoContainer {
-    width: 100%;
-    max-height: 400px;
+    width: 100%; /* Use full width */
+    max-height: 400px; /* Adjust max height */
   }
 }
 
+/* --- Responsive Design for mobile (for video) --- */
 @media (max-width: 480px) {
   .videoContainer {
-    max-height: 250px;
+    max-height: 250px; /* Adjust max height for small screens */
   }
 }

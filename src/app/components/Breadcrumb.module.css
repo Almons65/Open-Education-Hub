@@ -23,7 +23,7 @@
 }
 
 .breadcrumbItem:hover {
-  color: #a0a0ff; /* Hover color */
+  color: #4d4d81; /* Hover color */
   transform: translateY(-2px); /* Slightly lift the item */
 }
 

@@ -1,52 +1,57 @@
-/* auth.module.css - CSS Module (local class names only) */
 @keyframes gradientMove {
+  /* Start position */
   0% {
     background-position: 0% 50%;
   }
+  /* Mid-point position */
   50% {
     background-position: 100% 50%;
   }
+  /* End position (loops back to start) */
   100% {
     background-position: 0% 50%;
   }
 }
 
-/* Page + gradient background (preserved) */
+/* Main container for the entire authentication page */
 .auth-page {
-  position: relative;
-  min-height: 100vh;
-  overflow: hidden;
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  position: relative; /* For positioning children like particles */
+  min-height: 100vh; /* Ensure it fills at least the full viewport height */
+  overflow: hidden; /* Prevents content from spilling out */
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; /* Sets a clean, standard font */
+
+  /* The animated gradient background */
   background: linear-gradient(
     135deg,
     #fb923c, /* Tailwind orange-400 */
     #60a5fa, /* Tailwind blue-400 */
     #4ade80  /* Tailwind green-400 */
   );
-    background-size: 300% 300%;
-  animation: gradientMove 12s ease infinite;
+  background-size: 300% 300%; /* Makes the gradient larger so it can move */
+  animation: gradientMove 12s ease infinite; /* Applies the animation from @keyframes */
 }
 
-/* Particles container */
+/* Container for the background particle effect */
 .particles {
-  position: absolute;
-  inset: 0;
+  position: absolute; /* Sits on top of the gradient, behind the card */
+  inset: 0; /* Shorthand for top: 0, right: 0, bottom: 0, left: 0 */
   width: 100%;
   height: 100%;
-  z-index: 0;
-  pointer-events: none;
+  z-index: 0; /* Sits behind the card (which is z-index: 10) */
+  pointer-events: none; /* Allows mouse clicks to pass through */
 }
 
+/* Individual particle style */
 .particle {
-  position: absolute;
-  border-radius: 50%;
+  position: absolute; /* Positioned by React */
+  border-radius: 50%; /* Makes it a circle */
   width: 10px;
   height: 10px;
-  background: rgba(255, 255, 255, 0.15);
-  animation: auth-drift linear infinite;
+  background: rgba(255, 255, 255, 0.15); /* Semi-transparent white */
+  animation: auth-drift linear infinite; /* Applies the drifting animation */
 }
 
-/* Example nth-child timings — you set the positions inline in React, so durations only */
+/* Set different animation durations for each particle to create variety */
 .particle:nth-child(1) { animation-duration: 18s; }
 .particle:nth-child(2) { animation-duration: 22s; }
 .particle:nth-child(3) { animation-duration: 25s; }
@@ -54,35 +59,38 @@
 .particle:nth-child(5) { animation-duration: 28s; }
 .particle:nth-child(6) { animation-duration: 24s; }
 
+/* Defines the simple drifting motion for the particles */
 @keyframes auth-drift {
   0%   { transform: translate(0,0); opacity: 1; }
   50%  { transform: translate(30px, -30px); opacity: 0.7; }
   100% { transform: translate(0,0); opacity: 1; }
 }
 
-/* Card container and card */
+/* This container centers the auth-card in the middle of the page */
 .auth-card-container {
-  position: relative;
+  position: relative; /* Sits on top of particles */
   z-index: 10;
   display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh; /* center vertically in viewport */
-  pointer-events: auto;
+  justify-content: center; /* Center horizontally */
+  align-items: center; /* Center vertically */
+  min-height: 100vh; /* Use full viewport height for centering */
+  pointer-events: auto; /* Re-enables pointer events for the card */
 }
 
+/* The main authentication card */
 .auth-card {
   width: 420px;
-  max-width: 92%;
-  background: linear-gradient(145deg, #ffffff, #f0f0ff);
-  border-radius: 22px;
+  max-width: 92%; /* Ensures card fits on small screens */
+  background: linear-gradient(145deg, #ffffff, #f0f0ff); /* Subtle white gradient */
+  border-radius: 22px; /* Rounded corners */
   padding: 28px 26px 34px 26px;
-  box-shadow: 0 15px 40px rgba(0,0,0,0.22);
+  box-shadow: 0 15px 40px rgba(0,0,0,0.22); /* Soft shadow for depth */
+  /* Smooth transition for height changes (when tabs switch) */
   transition: height 0.28s ease, transform 0.18s ease;
-  overflow: hidden;
+  overflow: hidden; /* Hides form content that is outside the card's height */
 }
 
-/* Orb + logo */
+/* Container for the orb and logo */
 .orb-container {
   width: 100%;
   display: flex;
@@ -90,12 +98,14 @@
   margin-bottom: 14px;
 }
 
+/* Relative container for positioning the SVG and Image */
 .orb-with-image {
   position: relative;
   width: 220px;
   height: 180px;
 }
 
+/* The SVG element containing the orb */
 .orb-svg {
   position: absolute;
   top: -26%;
@@ -105,80 +115,103 @@
   display: block;
 }
 
+/* Applies the rotation animation to the orb */
 .orbRotate {
-  transform-origin: center;
+  transform-origin: center; /* Rotates around its center */
   animation: auth-rotateOrb 20s linear infinite;
 }
 
+/* Applies the breathing (scaling) animation to the orb */
 .orbBreath {
-  transform-origin: center;
-  animation: auth-breathe 2s ease-in-out infinite alternate;
+  transform-origin: center; /* Scales from its center */
+  animation: auth-breathe 2s ease-in-out infinite alternate; /* Alternates back and forth */
 }
 
-/* small breathing & rotate effects */
+/* Defines the 360-degree rotation for the orb */
 @keyframes auth-rotateOrb {
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
 }
+
+/* Defines the breathing (scale) effect */
 @keyframes auth-breathe {
   0%   { transform: scale(0.95); }
   50%  { transform: scale(1.05); }
   100% { transform: scale(0.95); }
 }
 
-/* orb-side image positioned over the SVG center */
+/* The logo image (OEH) */
 .orb-side-img {
-  position: absolute;
+  position: absolute; /* Positioned on top of the SVG */
   top: 50%;
   left: 80%;
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-  user-select: none;
+  transform: translate(-50%, -50%); /* Centers the image */
+  pointer-events: none; /* Prevents image from being clicked/dragged */
+  user-select: none; /* Prevents image from being selected */
 }
 
-/* Tabs */
+/* Container for the 'Login', 'Signup', 'Reset' tabs */
 .auth-tabs {
   display: flex;
-  justify-content: space-around;
+  justify-content: space-around; /* Distributes tabs evenly */
   margin-top: 8px;
   margin-bottom: 18px;
-  border-bottom: 2px solid rgba(0,0,0,0.06);
-  gap: 4px;
+  gap: 4px; /* Space between tabs */
+  position: relative; /* For positioning the slider */
+  border-bottom: 2px solid rgba(0,0,0,0.06); /* Light gray bottom border */
 }
 
-.auth-tabs > div {
+/* Individual tab item */
+.tabItem {
   padding: 10px 12px;
   cursor: pointer;
-  color: #9aa0ac;
+  color: #9aa0ac; /* Default, inactive color */
   font-weight: 700;
-  transition: color 0.18s ease, transform 0.18s ease;
-  user-select: none;
+  transition: color 0.18s ease, transform 0.18s ease; /* Smooth hover effect */
+  user-select: none; /* Prevents text selection */
   font-size: 18px;
+  position: relative;
+  z-index: 1; /* Sits above the slider */
 }
 
-.auth-tabs > div:hover {
-  color: #6c5ce7;
-  transform: translateY(-2px);
+/* The animated underline/slider for the active tab */
+.slider {
+  position: absolute;
+  bottom: -2px; /* Sits perfectly on top of the container's border-bottom */
+  left: 0;
+  height: 3px;
+  background: linear-gradient(135deg, #6c5ce7, #a29bfe); /* Purple gradient */
+  border-radius: 2px;
+  /* This transition animates the 'transform' and 'width' properties
+     when they are changed by JavaScript */
+  transition: transform 0.3s ease-in-out, width 0.3s ease-in-out;
 }
 
+/* Tab hover effect */
+.tabItem:hover {
+  color: #6c5ce7; /* Active purple color */
+  transform: translateY(-2px); /* Slight lift */
+}
+
+/* Style for the currently active tab */
 .active {
   color: #6c5ce7;
-  position: relative;
 }
 
-/* Forms - stacked with visibility classes */
+/* Base style for all forms (Login, Signup, Reset) */
 .auth-form {
-  display: none;
-  flex-direction: column;
-  gap: 20px;
+  display: none; /* Forms are hidden by default */
+  flex-direction: column; /* Stack inputs vertically */
+  gap: 20px; /* Space between inputs */
   position: relative;
 }
 
+/* This class is added by React to show the currently active form */
 .visible {
   display: flex;
 }
 
-/* Titles */
+/* Title for each form (e.g., "Login") */
 .form-title {
   text-align: center;
   font-size: 26px;
@@ -188,66 +221,82 @@
   color: #333;
 }
 
-/* Input groups */
+/* Container for an input and its label */
 .input-group {
-  position: relative;
+  position: relative; /* For positioning the label and underline */
   margin: 0 auto;
   width: 86%;
 }
 
+/* The actual <input> elements */
 .input-group input[type="text"],
 .input-group input[type="email"],
 .input-group input[type="password"] {
   width: 100%;
-  padding: 12px 40px 12px 12px;
+  padding: 12px 40px 12px 12px; /* Padding for text and to make space for icon */
   border: none;
-  border-bottom: 2px solid rgba(0,0,0,0.12);
+  border-bottom: 2px solid rgba(0,0,0,0.12); /* Light gray underline */
   background: transparent;
   font-size: 14px;
   font-weight: 600;
-  outline: none;
+  outline: none; /* Removes default browser outline */
   color: #222;
   border-radius: 4px;
-  box-sizing: border-box;
+  box-sizing: border-box; /* Ensures padding doesn't affect width */
 }
 
+/* The <label> for the input (e.g., "Email") */
 .input-group label {
   position: absolute;
   left: 10px;
   top: 10px;
-  pointer-events: none;
+  pointer-events: none; /* Allows clicks to go "through" to the input */
   font-size: 13px;
   color: #9aa0ac;
   font-weight: 700;
+  /* Smooth animation for the label when it moves */
   transition: transform 0.18s ease, font-size 0.18s ease, top 0.18s ease;
   background: transparent;
 }
 
-/* When input is focused or has content, reduce label — handled visually by your markup using placeholder logic */
+/* This is the "floating label" effect */
+/* When the input is focused OR has content (is not placeholder-shown) */
 .input-group input:focus + label,
 .input-group input:not(:placeholder-shown) + label {
-  top: -12px;
-  font-size: 12px;
-  color: #6c5ce7;
+  top: -12px; /* Move the label up */
+  font-size: 12px; /* Make it smaller */
+  color: #6c5ce7; /* Change to active color */
 }
 
-/* underline bar (animated) */
+/* The animated purple underline bar */
 .underline {
   position: absolute;
   bottom: 0px;
   left: 0px;
   height: 2px;
-  width: 0%;
+  width: 0%; /* Starts with 0 width */
   background: linear-gradient(135deg, #6c5ce7, #a29bfe);
-  transition: width 0.22s ease;
+  transition: width 0.22s ease; /* Animate the width change */
 }
 
+/* When the input is focused or has content, animate the underline to 100% width */
 .input-group input:focus ~ .underline,
 .input-group input:not(:placeholder-shown) ~ .underline {
   width: 100%;
 }
 
-/* Input icons (user / email) */
+/* Base icon styling (positioned on the right side of the input) */
+.input-icon {
+  position: absolute;
+  right: 0%;
+  top: 50%;
+  transform: translateY(-50%); /* Vertically centers the icon */
+  width: 32px;
+  height: 20px;
+  cursor: pointer;
+}
+
+/* Specific icon adjustments (user icon) */
 .user-icon {
   position: absolute;
   right: 1%;
@@ -258,16 +307,7 @@
   cursor: pointer;
 }
 
-.input-icon {
-  position: absolute;
-  right: 0%;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 32px;
-  height: 20px;
-  cursor: pointer;
-}
-
+/* Specific icon adjustments (email icon) */
 .email-icon {
   position: absolute;
   right: 1%;
@@ -278,61 +318,63 @@
   cursor: pointer;
 }
 
-
-
-/* Checkbox group */
+/* Container for the "Remember Me" checkbox and label */
 .checkbox-group {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  align-items: center; /* Aligns checkbox and text */
+  gap: 8px; /* Space between checkbox and text */
   width: 86%;
   margin: 0 auto;
 }
 
+/* The "Remember Me" text */
 .checkbox-label {
   font-weight: 700;
   color: #333;
   font-size: 0.95rem;
 }
 
-/* Submit button wrapper + states */
+/* Wrapper to position the button and loading GIF */
 .submit-btn-wrapper {
   position: relative;
   width: 86%;
   margin: 0 auto;
-  height: 48px;
+  height: 48px; /* Fixed height */
 }
 
+/* The main submit button */
 .submit-btn {
   width: 100%;
   height: 100%;
   border: none;
   border-radius: 12px;
-  background: linear-gradient(135deg, #6c5ce7, #a29bfe); /* normal gradient */
+  background: linear-gradient(135deg, #6c5ce7, #a29bfe); /* Purple gradient */
   color: #fff;
   font-size: 16px;
   font-weight: 800;
   cursor: pointer;
 }
 
-
+/* Hover effect for the submit button */
 .submit-btn:hover {
-  background: linear-gradient(135deg, #5a4bd7, #8f85f0);
-  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.25);
-  transform: translateY(-3px) scale(1.04);
+  background: linear-gradient(135deg, #5a4bd7, #8f85f0); /* Darker gradient */
+  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.25); /* Larger shadow */
+  transform: translateY(-3px) scale(1.04); /* Lift and grow */
   transition: background 0.3s ease, transform 0.3s ease;
 }
 
+/* Click (active) effect */
 .submit-btn:active {
-  transform: translateY(0px) scale(0.99);
+  transform: translateY(0px) scale(0.99); /* Press down effect */
   box-shadow: 0 6px 15px rgba(0, 0, 0, 0.18);
 }
-/* Loading gif positioned inside wrapper */
+
+/* The loading GIF */
 .loading-gif {
   position: absolute;
   right: 15%;
   top: 50%;
-  transform: translateY(-50%);
+  transform: translateY(-50%); /* Vertically centers */
   width: 220px;
   height: 204px;
   display: flex;
@@ -340,17 +382,27 @@
   justify-content: center;
 }
 
-/* Fade helpers */
-.fade-in { opacity: 1; transition: opacity 0.2s ease; }
-.fade-out { opacity: 0; transition: opacity 0.2s ease; }
+/* Utility class to fade content in */
+.fade-in {
+  opacity: 1;
+  transition: opacity 0.2s ease;
+}
 
-/* small responsive tweaks */
+/* Utility class to fade content out */
+.fade-out {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+/* Responsive styles for small screens (max-width: 480px) */
 @media (max-width: 480px) {
+  /* Make the card take up more width */
   .auth-card {
     width: 92%;
     padding: 20px;
     border-radius: 16px;
   }
+  /* Make inputs and buttons use 100% of the card's width */
   .input-group { width: 100%; }
   .submit-btn-wrapper { width: 100%; }
 }
