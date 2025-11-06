@@ -1,26 +1,44 @@
+/* This special directive imports all of Tailwind CSS's base styles,
+   component classes, and utility classes. */
 @import "tailwindcss";
 
+/* This block defines your *default* CSS variables for the entire site (light mode). */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #ffffff; /* Sets the default background variable to white */
+  --foreground: #171717; /* Sets the default text/foreground variable to dark gray */
 }
 
+/* This is a special Tailwind directive (@theme) that injects your variables
+   into Tailwind's own theming system. */
 @theme inline {
+  /* Tells Tailwind: "Use our --background variable for your 'background' color utility" */
   --color-background: var(--background);
+  /* Tells Tailwind: "Use our --foreground variable for your 'foreground' (text) color utility" */
   --color-foreground: var(--foreground);
+  /* Tells Tailwind: "Use the --font-geist-sans variable (from layout.js) as your default sans-serif font" */
   --font-sans: var(--font-geist-sans);
+  /* Tells Tailwind: "Use the --font-geist-mono variable (from layout.js) as your default monospace font" */
   --font-mono: var(--font-geist-mono);
 }
 
+/* This is a media query. These rules will *only* apply if the user's
+   operating system (Windows, macOS, Android, etc.) is set to "Dark Mode". */
 @media (prefers-color-scheme: dark) {
+  /* This re-defines the *same* CSS variables, but with dark mode values. */
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #0a0a0a; /* Sets the background to a dark black */
+    --foreground: #ededed; /* Sets the text color to a light gray */
   }
+  /* Because the <body> and Tailwind utilities use these variables,
+     they will automatically switch to these colors in dark mode. */
 }
 
+/* These are the base styles for the <body> tag of every page. */
 body {
+  /* Sets the page background to whatever the --background variable is (light or dark). */
   background: var(--background);
+  /* Sets the default text color to whatever the --foreground variable is. */
   color: var(--foreground);
+  /* Provides a fallback font stack in case the Geist font fails to load. */
   font-family: Arial, Helvetica, sans-serif;
 }

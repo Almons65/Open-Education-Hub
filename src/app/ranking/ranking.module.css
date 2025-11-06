@@ -1,0 +1,785 @@
+/* --- Global Settings --- */
+
+/* Import the "Poppins" font from Google Fonts for various weights */
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap");
+
+/* Set the animated gradient background on the entire page body */
+:global(body) {
+  background-color: #ffffff; /* Fallback for older browsers */
+  /* Animated background gradient */
+  background: linear-gradient(120deg, #ff9966, #66ccff, #66ff99);
+  background-size: 300% 300%; /* Gradient is 3x larger to allow movement */
+  animation: gradientMove 12s ease infinite; /* Applies the movement animation */
+  min-height: 100vh; /* Ensures background covers at least the full screen */
+}
+
+/* Keyframes definition for the animated background gradient */
+@keyframes gradientMove {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* --- Sidebar (From home.module.css) --- */
+/* Note: These styles are for the sidebar, which is also used on this page */
+
+/* The sidebar navigation panel */
+.sidebar {
+  background-color: rgba(255, 255, 255, 0.95); /* Semi-transparent white */
+  width: 300px; /* Default expanded width */
+  height: 120vh; /* Taller than the viewport to ensure bg coverage */
+  transition: all 0.4s ease; /* Smooth animation for all changes (like width) */
+  overflow: hidden; /* Hides content during width animation */
+  border-radius: 15px;
+  border-right: 2px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
+  position: relative; /* Changed from 'fixed' to scroll with the page if needed */
+  z-index: 1;
+}
+
+/* Style for the sidebar when it's open (toggled by React) */
+.sidebar.active {
+  width: 290px;
+}
+
+/* Style for the sidebar when it's closed */
+.sidebar:not(.active) {
+  width: 95px; /* Collapsed width */
+}
+
+/* Container for the logo image and title text */
+.imageText {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  transition: margin-left 0.4s ease;
+}
+
+/* The logo image in the sidebar header */
+.imageText img {
+  width: 140px;
+  height: 120px;
+  object-fit: contain; /* Prevents image from stretching */
+  margin-top: -20px;
+  margin-left: 55px;
+  transition: all 0.4s ease; /* Animate size and margin */
+}
+
+/* Logo image style when the sidebar is closed */
+.sidebar:not(.active) .imageText img {
+  width: 70px;
+  height: 65px;
+  margin-left: 0;
+  margin-top: 40px;
+}
+
+/* The "Open Education Hub" title text */
+.main {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  white-space: nowrap; /* Prevents text from wrapping */
+  margin-top: 70px;
+  margin-left: -150px;
+  transition: all 0.4s ease;
+}
+
+/* Title text style when the sidebar is closed */
+.sidebar:not(.active) .main {
+  opacity: 0; /* Fade out */
+  visibility: hidden;
+  width: 0;
+}
+
+/* Title text style when the sidebar is open */
+.sidebar.active .main {
+  opacity: 1; /* Fade in */
+  visibility: visible;
+}
+
+/* --- Sidebar Toggle Button (Hamburger) --- */
+.toggleBtn {
+  position: absolute;
+  top: 20px;
+  right: -5px;
+  width: 30px;
+  height: 24px;
+  display: flex;
+  flex-direction: column; /* Stacks the three bars */
+  justify-content: space-between;
+  cursor: pointer;
+  z-index: 1002;
+  transition: transform 0.2s ease;
+}
+
+.toggleBtn:hover {
+  transform: scale(1.1); /* Slightly enlarge on hover */
+}
+
+/* The three individual bars of the hamburger icon */
+.bar1, .bar2, .bar3 {
+  display: block;
+  width: 100%;
+  height: 3px;
+  margin-left: -36px;
+  background-color: #333;
+  border-radius: 2px;
+  transition: all 0.4s ease; /* Animate the transformation into an 'X' */
+  transform-origin: center;
+}
+
+/* Top bar's animation when 'active' (forming an 'X') */
+.toggleBtn.active .bar1 {
+  transform: rotate(45deg) translate(7.5px, 8px);
+  margin-left: -17px;
+}
+
+/* Middle bar's animation when 'active' */
+.toggleBtn.active .bar2 {
+  opacity: 0; /* Fades out */
+}
+
+/* Bottom bar's animation when 'active' */
+.toggleBtn.active .bar3 {
+  transform: rotate(-45deg) translate(6.5px, -7px);
+  margin-left: -17px;
+}
+
+/* --- Sidebar Menu Links --- */
+.menuLinks {
+  list-style: none; /* Removes bullet points */
+  padding: 20px 0;
+  margin: 0;
+}
+
+.navLink {
+  margin: 10px 0;
+}
+
+/* The <button> for each menu item (Home, Profile, etc.) */
+.menuBtn {
+  background: none;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px;
+  width: 100%;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+/* Hover/focus effect for the menu button */
+.menuBtn:hover, .menuBtn:focus {
+  transform: translateY(-5px); /* Lifts the button up */
+  transition: background 0.3s ease, transform 0.3s ease;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+  border-radius: 15px;
+}
+
+.menuBtn img {
+  width: 35px;
+  height: 35px;
+  margin-left: 10px;
+}
+
+.menuBtn span {
+  color: #333;
+  font-weight: 600;
+  transition: opacity 0.3s ease;
+}
+
+/* Menu button text when the sidebar is closed */
+.sidebar:not(.active) .menuBtn span {
+  opacity: 0;
+  visibility: hidden;
+  width: 0;
+}
+
+/* Menu button text when the sidebar is open */
+.sidebar.active .menuBtn span {
+  opacity: 1;
+  visibility: visible;
+  width: auto;
+}
+
+.menuBtn:hover {
+  background: rgba(0, 0, 0, 0.05); /* Light gray on hover */
+}
+
+/* --- Main Content Area (Right Side) --- */
+.mainContent {
+  flex: 1; /* Takes up all remaining horizontal space */
+  position: relative;
+  padding: 40px;
+  overflow-y: auto;
+}
+
+/* --- Background Particles --- */
+.particles {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  z-index: 1; /* Sits above the background but below content */
+  pointer-events: none; /* Clicks go "through" it */
+  overflow: hidden;
+}
+
+.particle {
+  position: absolute;
+  border-radius: 50%;
+  animation: floatParticle linear infinite; /* Applies the floating animation */
+}
+
+/* The floating animation for particles */
+@keyframes floatParticle {
+  0% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(-30px); /* Floats up */
+    opacity: 0.7;
+  }
+  100% {
+    transform: translateY(0); /* Floats back down */
+    opacity: 1;
+  }
+}
+
+/* --- Ranking Page Specifics --- */
+
+/* The main container for the leaderboard table */
+.container {
+  width: 100%;
+  max-width: 800px; /* Limits the width of the table */
+  margin: 40px auto; /* Centers the container */
+  margin-top: -1170px; /* (This is a very large negative margin, pulls it up) */
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.95); /* Semi-transparent white */
+  backdrop-filter: blur(10px); /* Frosted glass effect */
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  font-family: "Inter", sans-serif;
+  color: #333; 
+  position: relative; 
+  z-index: 1; /* Sits on top of particles */
+}
+
+/* The "Leaderboard" title */
+.title {
+  text-align: center;
+  color: #1a2c50; /* Dark blue */
+  font-size: 2.2rem;
+  font-weight: 700;
+  margin-bottom: 30px;
+  letter-spacing: -0.5px;
+}
+
+/* The main <table> element */
+.rankingTable {
+  width: 100%;
+  border-collapse: collapse; /* Removes gaps between cells */
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
+
+/* The table header (<thead>) */
+.rankingTable thead {
+  border-bottom: 2px solid rgba(0, 0, 0, 0.08); /* Line below the header */
+}
+
+/* Header cells (<th>) */
+.rankingTable th {
+  padding: 14px 18px;
+  text-align: left;
+  font-size: 0.9rem;
+  color: #555; 
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Aligns the last header cell ("Total Learning Time") to the right */
+.rankingTable th:last-child {
+  text-align: right;
+}
+
+/* A single row (<tr>) in the table body */
+.rankingTable tbody tr {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05); /* Light line between rows */
+  position: relative; /* For positioning the hover card */
+}
+
+/* Removes the border from the very last row */
+.rankingTable tbody tr:last-child {
+  border-bottom: none;
+}
+
+/* Hover effect for a table row */
+.rankingTable tbody tr:hover {
+  background-color: #f8faff; /* Light blue */
+}
+
+/* A single data cell (<td>) */
+.rankingTable td {
+  padding: 14px 18px; 
+  vertical-align: middle; /* Centers content vertically */
+}
+
+/* The "Rank" cell */
+.rankCell {
+  width: 60px;
+  padding-left: 20px;
+}
+
+/* --- User Cell (Avatar, Name, Hover Card) --- */
+.userCell {
+  font-weight: 600;
+  color: #2c3e50;
+  display: flex;
+  align-items: center;
+  gap: 15px; /* Space between avatar and name */
+  position: relative; /* Crucial for positioning the hover card */
+}
+
+/* Makes the avatar wrapper and the username text clickable */
+.avatarWrapper,
+.userCell > span {
+  cursor: pointer;
+}
+
+/* Wrapper for the avatar and its decoration */
+.avatarWrapper {
+  position: relative;
+  width: 48px; 
+  height: 48px;
+  flex-shrink: 0; /* Prevents it from shrinking */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* The outer decoration ring (e.g., gold wreath) */
+.avatarDecoration {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 1; /* Sits behind the avatar */
+  background: transparent;
+  padding: 3px; /* Creates the border thickness */
+  box-sizing: border-box;
+}
+
+/* The avatar image itself */
+.userAvatar,
+.userAvatarPlaceholder {
+  width: 40px; /* Smaller than the wrapper (48px) */
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid #fff; /* White gap between avatar and decoration */
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  position: relative;
+  z-index: 2; /* Sits on top of the decoration */
+}
+
+/* The placeholder (e.g., "U") if no avatar image */
+.userAvatarPlaceholder {
+  background-color: #bdc3c7; /* Gray */
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+/* The "Learning Time" cell */
+.timeCell {
+  font-weight: 600;
+  color: #0056b3; /* Blue */
+  font-size: 1.1rem;
+  text-align: right; 
+  min-width: 100px;
+}
+
+/* --- Rank Badge Styles (1, 2, 3) --- */
+
+/* The circular rank badge */
+.rank {
+  display: inline-block;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  line-height: 32px; /* Vertically centers the number */
+  border-radius: 50%;
+  text-align: center;
+  font-weight: 700;
+  font-size: 1rem;
+  color: #fff;
+  background-color: #34495e; /* Default dark blue for ranks 4+ */
+  position: relative; /* For positioning the medal ribbon */
+  z-index: 2; /* Sits on top of the ribbon */
+  border: 2px solid rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  transition: all 0.2s ease;
+}
+
+/* Gold medal style (Rank 1) */
+.gold {
+  margin-top: 8px; /* Extra space to make room for the ribbon */
+  background: radial-gradient(circle at 30% 30%, #FFD700 0%, #FFA500 100%);
+  border-color: #DAA520;
+  box-shadow:
+    inset 0 0 10px rgba(255,215,0,0.5), /* Inner glow */
+    inset 0 0 2px rgba(255,255,255,0.7), /* Highlight */
+    0 4px 8px rgba(0,0,0,0.3), /* Main shadow */
+    0 0 15px rgba(255,215,0,0.3); /* Outer glow */
+  color: #A0522D; /* Dark text for contrast */
+}
+
+/* Silver medal style (Rank 2) */
+.silver {
+  margin-top: 8px;
+  background: radial-gradient(circle at 30% 30%, #E0E0E0 0%, #A0A0A0 100%);
+  border-color: #808080;
+  box-shadow:
+    inset 0 0 10px rgba(224,224,224,0.5),
+    inset 0 0 2px rgba(255,255,255,0.7),
+    0 4px 8px rgba(0,0,0,0.3),
+    0 0 15px rgba(192,192,192,0.3);
+  color: #404040;
+}
+
+/* Bronze medal style (Rank 3) */
+.bronze {
+  margin-top: 8px;
+  background: radial-gradient(circle at 30% 30%, #CD7F32 0%, #8B4513 100%);
+  border-color: #A0522D;
+  box-shadow:
+    inset 0 0 10px rgba(205,127,50,0.5),
+    inset 0 0 2px rgba(255,255,255,0.7),
+    0 4px 8px rgba(0,0,0,0.3),
+    0 0 15px rgba(139,69,19,0.3);
+  color: #602000;
+}
+
+/* --- Medal Ribbon Styles (CSS magic) --- */
+
+/* These pseudo-elements create the two arms of the ribbon */
+.gold::before, .gold::after,
+.silver::before, .silver::after,
+.bronze::before, .bronze::after {
+  content: "";
+  position: absolute;
+  width: 12px;  /* Width of one ribbon arm */
+  height: 22px; /* Length of one ribbon arm */
+  top: -20px;   /* Positions it above the medal */
+  z-index: 1;   /* Sits BEHIND the medal (which is z-index 2) */
+  transform-origin: bottom center; /* Rotates from the bottom */
+  box-shadow: 0 -2px 4px rgba(0,0,0,0.1) inset;
+  border-radius: 3px 3px 0 0;
+}
+
+/* The left arm of the ribbon */
+.gold::before,
+.silver::before,
+.bronze::before {
+  left: 50%; /* Start at the center */
+  transform: translateX(-100%) rotate(-35deg); /* Move left and rotate */
+}
+
+/* The right arm of the ribbon */
+.gold::after,
+.silver::after,
+.bronze::after {
+  left: 50%; /* Start at the center */
+  transform: translateX(0%) rotate(35deg); /* Just rotate */
+}
+
+/* --- Ribbon Color Gradients (all blue) --- */
+.gold::before {
+  background: linear-gradient(to bottom, #203f83, #1e256d);
+}
+.gold::after {
+  background: linear-gradient(to bottom, #212f7a, #151d4b);
+}
+.silver::before {
+  background: linear-gradient(to bottom, #203f83, #1e256d);
+}
+.silver::after {
+  background: linear-gradient(to bottom, #212f7a, #151d4b);
+}
+.bronze::before {
+  background: linear-gradient(to bottom, #203f83, #1e256d);
+}
+.bronze::after {
+  background: linear-gradient(to bottom, #212f7a, #151d4b);
+}
+
+/* Hover effect for the entire medal (coin + ribbon) */
+.rankingTable tbody tr:hover .rank {
+  transform: translateY(-2px);
+  box-shadow:
+    inset 0 0 10px rgba(129, 129, 129, 0.7),
+    0 6px 12px rgba(0,0,0,0.4), /* Lift shadow */
+    0 0 20px rgba(99, 99, 99, 0.4); /* Intensify outer glow */
+}
+/* Specific hover shadow for gold */
+.rankingTable tbody tr:hover .gold.rank {
+  box-shadow:
+    inset 0 0 10px rgba(255,215,0,0.7),
+    0 6px 12px rgba(0,0,0,0.4),
+    0 0 20px rgba(255,215,0,0.4);
+}
+/* Specific hover shadow for silver */
+.rankingTable tbody tr:hover .silver.rank {
+  box-shadow:
+    inset 0 0 10px rgba(224,224,224,0.7),
+    0 6px 12px rgba(0,0,0,0.4),
+    0 0 20px rgba(192,192,192,0.4);
+}
+/* Specific hover shadow for bronze */
+.rankingTable tbody tr:hover .bronze.rank {
+  box-shadow:
+    inset 0 0 10px rgba(205,127,50,0.7),
+    0 6px 12px rgba(0,0,0,0.4),
+    0 0 20px rgba(139,69,19,0.4);
+}
+
+/* --- Decoration Border Styles (for Avatars) --- */
+.goldDecoration {
+  background: linear-gradient(45deg, #ffd700, #f0c000, #ffec80);
+}
+.silverDecoration {
+  background: linear-gradient(45deg, #c0c0c0, #a8a8a8, #e0e0e0);
+}
+.bronzeDecoration {
+  background: linear-gradient(45deg, #cd7f32, #b56e2c, #e0a979);
+}
+
+/* --- User Hover Card Styles --- */
+
+/* This rule shows the hover card when the *user cell* is hovered */
+.userCell:hover .hoverCard {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto; /* Allows the user to move their mouse onto the card */
+  transform: translateY(-50%) translateX(20px); /* Slides it right */
+}
+
+/* The hover card container */
+.hoverCard {
+  position: absolute; /* Positioned relative to the table row */
+  width: 400px; 
+  background-color: #ffffff;
+  border-radius: 16px; 
+  box-shadow: 0 15px 45px rgba(0, 0, 0, 0.2); 
+  z-index: 1000; /* Sits on top of everything */
+  border: 1px solid #e0e0e0; 
+
+  top: 50%; /* Vertically centers on the row */
+  left: 80%; /* Starts at 80% of the cell's width */
+  
+  /* This transform perfectly centers it vertically and moves it left */
+  transform: translateY(-50%) translateX(10px);
+  
+  /* --- Hidden by Default --- */
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none; /* Can't hover a hidden card */
+  
+  /* --- Animation --- */
+  transition: opacity 0.4s ease-out, transform 0.4s ease-out;
+}
+
+/* (Fade-in keyframes - currently not used but available) */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-40%) scale(0.95); }
+  to { opacity: 1; transform: translateY(-50%) scale(1); }
+}
+
+/* The blue decorative header of the card */
+.hoverCardHeaderBackground {
+  height: 60px; 
+  background: linear-gradient(135deg, #00c9ff, #92fe9d);
+  border-radius: 15px 15px 0 0; /* Rounded top corners */
+}
+
+/* This empty space allows the avatar to overlap the header */
+.hoverCardAvatarSection {
+  position: relative;
+  height: 40px;
+}
+
+/* Wrapper for the avatar and its decoration */
+.hoverCardAvatarWrapper {
+  position: absolute;
+  top: -40px; /* Pulls the avatar up into the header */
+  left: 20px;
+  width: 80px; 
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* The decoration ring on the hover card avatar */
+.hoverCardAvatarDecoration {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%; 
+  height: 100%; 
+  border-radius: 50%;
+  z-index: 1;
+  padding: 4px; /* Thickness of the ring */
+  box-sizing: border-box;
+}
+
+/* The avatar image (or placeholder) on the hover card */
+.hoverCardAvatar,
+.hoverCardAvatarPlaceholder {
+  width: 72px; /* Smaller than the wrapper (80px) */
+  height: 72px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid #fff; /* White gap */
+  box-shadow: 0 3px 8px rgba(0,0,0,0.15); 
+  position: relative;
+  z-index: 2; /* On top of decoration */
+}
+
+/* Placeholder style if no avatar */
+.hoverCardAvatarPlaceholder {
+  background-color: #bdc3c7;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.5rem;
+}
+
+/* The main body of the hover card with text info */
+.hoverCardBody {
+  padding: 15px 20px 20px 20px; 
+  text-align: left;
+}
+
+/* User's name */
+.hoverCardName {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #1a2c50;
+  margin-top: 5px; 
+  margin-bottom: 2px;
+}
+
+/* User's handle */
+.hoverCardUsername {
+  font-size: 0.85rem;
+  color: #777;
+  margin-bottom: 12px;
+}
+
+/* User's bio (truncated to 2 lines) */
+.hoverCardBio {
+  font-size: 0.9rem;
+  color: #555;
+  margin-bottom: 15px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2; /* Limit to 2 lines */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-height: 2.7em; /* Reserve space for 2 lines */
+  line-height: 1.4;
+}
+
+/* Container for the 3 stats at the bottom */
+.hoverCardStats {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-direction: row; 
+  padding-top: 15px;
+  margin-top: 15px;
+  border-top: 1px solid #f0f0f0; /* Separator line */
+  gap: 10px;
+}
+
+/* A single stat (e.g., "Learning Time") */
+.hoverCardStatItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center; 
+}
+
+/* The value (e.g., "0h 0m") */
+.hoverCardStatValue {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1a2c50;
+  margin-bottom: 2px;
+  white-space: nowrap;
+}
+
+/* The label (e.g., "Learning Time") */
+.hoverCardStatLabel {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #777;
+  text-transform: uppercase;
+  white-space: nowrap; 
+}
+
+/* (This "View Profile" button is in the JSX but not used, styles are here) */
+.hoverCardViewProfileBtn {
+  width: 100%;
+  padding: 10px 15px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 20px;
+  transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 15px rgba(0, 123, 255, 0.2);
+}
+
+.hoverCardViewProfileBtn:hover {
+  background-color: #0056b3;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 123, 255, 0.3);
+}
+
+/* --- Media Queries (Mobile) --- */
+@media (max-width: 768px) {
+  /* This query makes the hover card work on mobile (e.g., on tap) */
+  .hoverCard {
+    /* (This part is optional, as hover is difficult on mobile) */
+    width: calc(100% - 40px); /* Full width minus padding */
+    left: 20px !important; /* Override inline 'left' style */
+    top: auto !important; /* Remove specific 'top' */
+    bottom: 20px; /* Stick to the bottom of the screen */
+    transform: translateY(0); /* No vertical centering */
+    animation: none; /* Disable animation */
+  }
+}
