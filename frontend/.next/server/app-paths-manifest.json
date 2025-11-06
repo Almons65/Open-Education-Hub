@@ -1,7 +1,0 @@
-{
-  "/auth/page": "app/auth/page.js",
-  "/home/page": "app/home/page.js",
-  "/page": "app/page.js",
-  "/profile/page": "app/profile/page.js",
-  "/ranking/page": "app/ranking/page.js"
-}
