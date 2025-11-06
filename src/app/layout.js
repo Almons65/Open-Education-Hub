@@ -1,3 +1,5 @@
+// This file defines the root layout for the Next.js application
+
 // Import the font loaders from 'next/font/google'
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
