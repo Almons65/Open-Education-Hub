@@ -88,6 +88,7 @@
   /* Smooth transition for height changes (when tabs switch) */
   transition: height 0.28s ease, transform 0.18s ease;
   overflow: hidden; /* Hides form content that is outside the card's height */
+  min-height: 700px;
 }
 
 /* Container for the orb and logo */
@@ -172,6 +173,20 @@
   font-size: 18px;
   position: relative;
   z-index: 1; /* Sits above the slider */
+}
+
+.oauthBtn{
+  display: flex;
+  cursor: pointer;
+  padding: 5px 10px;
+}
+
+.oauth-buttons {
+  display: flex;
+  justify-content: center; /* 中央寄せ */
+  align-items: center;
+  gap: 12px; /* ボタンの間隔 */
+  flex-wrap: wrap; /* 画面が小さいときは折り返す */
 }
 
 /* The animated underline/slider for the active tab */

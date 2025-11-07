@@ -10,7 +10,7 @@ import Image from "next/image";
 import PageTransition from "../components/PageTransition";
 // CSS module for locally-scoped styles
 import styles from "./auth.module.css";
-
+import { supabase } from "@/lib/supabaseClient";
 
 export default function AuthPage() {
   // Router hook to be able to redirect the user
@@ -64,17 +64,59 @@ export default function AuthPage() {
   }, [activeTab, tabHeights]);
 
   // Function to handle form submissions
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault(); // Prevent the default form submission (page reload)
     // Set the loading state for the *current* tab to true
     setLoading((prev) => ({ ...prev, [activeTab]: true }));
-    // Simulate a network request with a 2-second delay
-    setTimeout(() => {
-      // After 2 seconds, set loading back to false
-      setLoading((prev) => ({ ...prev, [activeTab]: false }));
-      // Redirect the user to the "/home" page on successful login/signup
-      router.push("/home");
-    }, 2000);
+
+    try{
+      if(activeTab === "login"){
+        const email = e.target.identifier.value;
+        const password = e.target.password.value;
+
+        const {error} = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if(error) throw error;
+        router.push("/home")
+      }
+      if(activeTab === "signup"){
+        const email = e.target.email.value;
+        const password = e.target.password.value;
+        const confirm =e.target.confirm.value;
+
+        if(password !== confirm) throw new Error("Passwords do not match");
+
+        const {error} = await supabase.auth.signUp({
+          email,
+          password,
+        });
+        if(error) throw error;
+        alert("Check your email to confirm your account!");
+        e.target.reset();
+      }
+
+      if(activeTab ==="reset"){
+        const email = e.target.email.value;
+        const {error} = await supabase.auth.resetPasswordForEmail(email);
+        if(error) throw error;
+        alert("Password reset link sent!");
+      }
+    }catch(err){
+      alert(err.message);
+    }finally{
+      setLoading(prev =>({...prev, [activeTab]:false}));
+    }
+  };
+
+  //google github login
+  const handleOAuthLogin = async (provider)=>{
+    const {error} = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {redirectTo:"http://localhost:3000/auth/callback"}
+    });
+    if(error) alert(error.message);
   };
 
   // Render the component's JSX
@@ -176,6 +218,7 @@ export default function AuthPage() {
               showPassword={showPassword} // Pass the password visibility state
               setShowPassword={setShowPassword} // Pass the function to update password visibility
               handleSubmit={handleSubmit} // Pass the universal submit handler
+              handleOAuthLogin={handleOAuthLogin}
             />
             {/* Render the Signup form component */}
             <FormSignup
@@ -200,7 +243,7 @@ export default function AuthPage() {
 
 // -- FormLogin Component --
 // Separate component for the Login form
-const FormLogin = ({ active, loading, showPassword, setShowPassword, handleSubmit }) => (
+const FormLogin = ({ active, loading, showPassword, setShowPassword, handleSubmit, handleOAuthLogin }) => (
   // The form element. 'visible' class is added when 'active' is true.
   <form className={`${styles["auth-form"]} ${active ? styles.visible : ""}`} onSubmit={handleSubmit}>
     <h2 className={styles["form-title"]}>Login</h2>
@@ -214,7 +257,7 @@ const FormLogin = ({ active, loading, showPassword, setShowPassword, handleSubmi
     {/* Input group for Password */}
     <div className={styles["input-group"]}>
       {/* Dynamically set input type based on showPassword state */}
-      <input type={showPassword.login ? "text" : "password"} required placeholder=" " />
+      <input type={showPassword.login ? "text" : "password"} name="password" required placeholder=" " />
       <label>Password</label>
       <span className={styles.underline}></span>
       {/* The eye icon to toggle password visibility */}
@@ -228,6 +271,26 @@ const FormLogin = ({ active, loading, showPassword, setShowPassword, handleSubmi
         onClick={() => setShowPassword(prev => ({ ...prev, login: !prev.login }))}
       />
     </div>
+
+    {/* supabase OAuth button*/}
+    <div className={styles["oauth-buttons"]}>
+      <button type="button" onClick={()=>handleOAuthLogin("google")} className={`${styles.oauthBtn} ${styles.google}`}><Image
+          src="/icons/google-icon.png"
+          alt="Google Icon"
+          width={20}
+          height={20}
+          className={styles["google-icon"]}
+      /></button>
+      <button type="button" onClick={()=>handleOAuthLogin("github")} className={`${styles.oauthBtn} ${styles.github}`}><Image
+          src="/icons/github-icon.png"
+          alt="GitHub Icon"
+          width={20}
+          height={20}
+          className={styles["github-icon"]}
+      />
+      </button>
+    </div>
+
     {/* Checkbox group for "Remember Me" */}
     <div className={styles["checkbox-group"]}>
       <input type="checkbox" id="rememberMe" />
@@ -246,14 +309,14 @@ const FormSignup = ({ active, loading, showPassword, setShowPassword, handleSubm
     <h2 className={styles["form-title"]}>Sign Up</h2>
     {/* Input group for Username */}
     <div className={styles["input-group"]}>
-      <input type="text" required placeholder=" " />
+      <input type="text" name="username" required placeholder=" " />
       <label>Username</label>
       <span className={styles.underline}></span>
       <img src="/icons/user-icon.png" alt="user icon" className={styles["user-icon"]} />
     </div>
     {/* Input group for Email */}
     <div className={styles["input-group"]}>
-      <input type="email" required placeholder=" " />
+      <input type="email" name= "email" required placeholder=" " />
       <label>Email</label>
       <span className={styles.underline}></span>
       <img src="/icons/email-icon.png" alt="email icon" className={styles["email-icon"]} />
@@ -261,7 +324,7 @@ const FormSignup = ({ active, loading, showPassword, setShowPassword, handleSubm
     {/* Input group for Password */}
     <div className={styles["input-group"]}>
       {/* Dynamically set input type */}
-      <input type={showPassword.signup.password ? "text" : "password"} required placeholder=" " />
+      <input type={showPassword.signup.password ? "text" : "password"} name="password" required placeholder=" " />
       <label>Password</label>
       <span className={styles.underline}></span>
       {/* Icon to toggle password visibility */}
@@ -283,7 +346,7 @@ const FormSignup = ({ active, loading, showPassword, setShowPassword, handleSubm
     {/* Input group for Confirm Password */}
     <div className={styles["input-group"]}>
       {/* Dynamically set input type */}
-      <input type={showPassword.signup.confirm ? "text" : "password"} required placeholder=" " />
+      <input type={showPassword.signup.confirm ? "text" : "password"} name="confirm" required placeholder=" " />
       <label>Confirm Password</label>
       <span className={styles.underline}></span>
       {/* Icon to toggle password visibility */}
@@ -315,7 +378,7 @@ const FormReset = ({ active, loading, handleSubmit }) => (
     <h2 className={styles["form-title"]}>Reset Password</h2>
     {/* Input group for Email */}
     <div className={styles["input-group"]}>
-      <input type="email" required placeholder=" " />
+      <input type="email" name="email" required placeholder=" " />
       <label>Email</label>
       <span className={styles.underline}></span>
       <img src="/icons/email-icon.png" alt="email icon" className={styles["email-icon"]} />
