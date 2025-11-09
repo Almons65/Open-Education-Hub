@@ -180,13 +180,13 @@ export default function CourseDetail({ course }) {
           </div>
 
           {/* Conditionally render the preview video if a 'previewVideo' URL exists */}
-          {course.previewVideo && (
+          {course.preview_video && (
             <div className={styles.previewContainer}>
               <h3 className={styles.previewLabel}>Preview</h3>
               {/* The container for the video player */}
               <div className={styles.videoContainer}>
                 <video
-                  src={course.previewVideo} // The video file to play
+                  src={course.preview_video} // The video file to play
                   controls // Show the default browser controls (play, pause, volume)
                   className={styles.courseVideo}
                 >
