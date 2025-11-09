@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter, useSearchParams} from "next/navigation";
 import PageTransition from "../components/PageTransition";
 import styles from "./profile.module.css";
+import { supabase } from "@/lib/supabaseClient";
 
 // --- Mock Data and Constants ---
 
@@ -37,18 +38,29 @@ function Dropdown({ label, icon, children, width = "100%", onOpen }) {
 
   // This effect adds a global click listener to close the dropdown
   // when the user clicks *outside* of it.
+// Replace your first useEffect with this one
+
+  // This effect adds a global click listener to close the dropdown
+  // when the user clicks *outside* of it.
   useEffect(() => {
-    function onDocClick(e) {
-      // If the ref is set and the click was *not* inside the ref's element
-      if (ref.current && !ref.current.contains(e.target)) {
-        setOpen(false); // Close the dropdown
+    // This function runs when a click happens anywhere
+    const handleClickOutside = (event) => {
+      // If the dropdown is open AND the click was outside the dropdown's <div>...
+      if (ref.current && !ref.current.contains(event.target)) {
+        // ...then close the dropdown.
+        setOpen(false);
       }
-    }
-    // Add the listener
-    document.addEventListener("mousedown", onDocClick);
-    // Cleanup: Remove the listener when the component unmounts
-    return () => document.removeEventListener("mousedown", onDocClick);
-  }, []);
+    };
+
+    // Add the listener to the whole document
+    document.addEventListener("mousedown", handleClickOutside);
+
+    // This is a cleanup function: remove the listener when the component unmounts
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [ref]); // This effect only re-runs if the 'ref' changes (which it won't)
+
 
   // Function to toggle the dropdown's open state
   const toggleDropdown = () => {
@@ -151,7 +163,48 @@ export default function ProfilePage() {
   const [user, setUser] = useState({});
   // State for the form data when in "edit mode"
   const [formData, setFormData] = useState({});
-  
+
+  // State for the logged-in user data
+  const [loggedInUser, setLoggedInUser] = useState(null);
+
+// --- REPLACE your first useEffect (lines 159-169) with this one ---
+  useEffect(() => {
+    const fetchUser = async () => {
+      // 1. Get the auth user (id, email) from Supabase session
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !authUser) {
+        // No user is logged in
+        router.push('/auth'); 
+        return;
+      }
+
+      // 2. Use the authUser.id to get their REAL profile from our 'users' table
+      const { data: profileData, error: profileError } = await supabase
+        .from('users') // Query your public 'users' table
+        .select('username') // We only need the username
+        .eq('id', authUser.id) // Match the ID
+        .single(); // We expect only one row
+
+      if (profileError || !profileData) {
+        // This means the user is authenticated, but their profile row is missing
+        console.error("CRITICAL: Could not find user profile for ID:", authUser.id, profileError);
+        alert("Error loading user profile. Please log out and log in again.");
+        router.push('/auth'); 
+        return;
+      }
+      
+      // 3. Combine the auth data and profile data into one object
+      const completeUser = {
+        ...authUser,       // Contains id, email, user_metadata
+        profile: profileData // Contains { username: '...' }
+      };
+      
+      // 4. Now set the logged-in user
+      setLoggedInUser(completeUser);
+    };
+    fetchUser();
+  }, [router]);  
   
   // This function calculates the user's earned badges from their progress
   // 'useCallback' memoizes the function so it doesn't change on every render,
@@ -201,145 +254,247 @@ export default function ProfilePage() {
   const searchParams = useSearchParams();
 
   // EFFECT 1: This effect runs ONCE on page load to determine *which user to display*.
-  useEffect(() => {
-    // Get the '?view=' parameter from the URL (e.g., "/profile?view=User1")
-    const viewParam = searchParams.get("view");
+// --- ADDED ---
+  // A new state to hold the progress dictionary from your API
+  const [profileProgress, setProfileProgress] = useState({});
 
+  // EFFECT 1: This effect runs to determine *which user to display*.
+  useEffect(() => {
+    // Wait until we know who is logged in
+    if (!loggedInUser) return;
+
+    const viewParam = searchParams.get("view");
+    const loggedInUsername = loggedInUser.profile.username;
     // If URL is "?view=me", load the logged-in user
     if (viewParam === "me") {
-      setCurrentUsername(LOGGED_IN_USERNAME);
-      return; // Stop here
+      setCurrentUsername(loggedInUsername);
+      return; 
     }
 
     // If URL has a specific username (e.g., "?view=User1"), load that user
     if (viewParam && viewParam !== "me") {
       setCurrentUsername(viewParam);
-      return; // Stop here
+      return;
     }
 
-    // FALLBACK: If no '?view=' param, check localStorage (from Ranking page)
-    const storedProfile = localStorage.getItem("viewing_profile");
-    // Load the stored profile, or default to the logged-in user
-    setCurrentUsername(storedProfile || LOGGED_IN_USERNAME);
-  }, [searchParams]); // This effect re-runs if the URL search params change
+    // FALLBACK: If no '?view=' param, default to the logged-in user
+    // We remove the old localStorage fallback
+    setCurrentUsername(loggedInUsername);
+    
+  }, [searchParams, loggedInUser]); // Now depends on loggedInUser
 
 
+  // // EFFECT 2: This effect loads all data *after* 'currentUsername' has been set.
+  // useEffect(() => {
+  //   // Do nothing if 'currentUsername' is still null (waiting for Effect 1)
+  //   if (!currentUsername) return; 
 
-  // EFFECT 2: This effect loads all data *after* 'currentUsername' has been set.
+  //   // --- Load all data from mock database and localStorage ---
+
+  //   // 1. Load static user info (name, bio, etc.)
+  //   const userInfo = USERS_DATA[currentUsername] || { name: "Guest", username: "guest", email: "", joined: "N/A", bio: "" };
+  //   setUser(userInfo);
+  //   setFormData(userInfo); // Pre-fill the edit form
+
+  //   // 2. Load user's favorites
+  //   let allFavorites = JSON.parse(localStorage.getItem("favorites") || "{}");
+  //   if (Array.isArray(allFavorites)) { allFavorites = {}; } // Fix old data format
+  //   setFavorites(allFavorites[currentUsername] || []); // Get only this user's list
+
+  //   // 3. Load user's history
+  //   let allHistory = JSON.parse(localStorage.getItem("history") || "{}");
+  //   if (Array.isArray(allHistory)) { allHistory = {}; } // Fix old data format
+  //   setHistory(allHistory[currentUsername] || []); // Get only this user's list
+
+  //   // 4. Load course progress and update badges
+  //   const savedProgress = JSON.parse(localStorage.getItem("courseProgress") || "{}");
+  //   setCourseProgress(savedProgress); // Save the *entire* progress object
+  //   updateEarnedBadges(savedProgress); // Calculate badges from it
+
+  //   // 5. Load learning time
+  //   const savedTime = JSON.parse(localStorage.getItem("learningTime") || "{}");
+  //   setLearningTime(savedTime[currentUsername] || 0); // Get only this user's time
+
+  //   // 6. Load avatar
+  //   const savedAvatars = JSON.parse(localStorage.getItem("userAvatars") || "{}");
+  //   setAvatar(savedAvatars[currentUsername] || null); // Get only this user's avatar
+
+  //   // 7. Load decorations
+  //   const decorationData = JSON.parse(localStorage.getItem("userDecorations") || "{}");
+  //   const userDecorations = decorationData[currentUsername] || { unlocked: [], equipped: null };
+  //   setUnlockedDecorations(userDecorations.unlocked);
+  //   setEquippedDecoration(userDecorations.equipped);
+    
+  // }, [currentUsername, updateEarnedBadges]); // Re-runs if 'currentUsername' changes
+
+// // EFFECT 2: This effect loads all data *after* 'currentUsername' has been set.
+//   useEffect(() => {
+//     // Do nothing if 'currentUsername' is still null (waiting for Effect 1)
+//     if (!currentUsername) return; 
+
+//     // --- Load all data from mock database and localStorage ---
+
+//     // 1. Load static user info (name, bio, etc.)
+//     const userInfo = USERS_DATA[currentUsername] || { name: "Guest", username: "guest", email: "", joined: "N/A", bio: "" };
+//     setUser(userInfo);
+//     setFormData(userInfo); // Pre-fill the edit form
+
+//     // 2. Load user's favorites
+//     let allFavorites = JSON.parse(localStorage.getItem("favorites") || "{}");
+//     if (Array.isArray(allFavorites)) { allFavorites = {}; } // Fix old data format
+//     setFavorites(allFavorites[currentUsername] || []); // Get only this user's list
+
+//     // 3. Load user's history
+//     let allHistory = JSON.parse(localStorage.getItem("history") || "{}");
+//     if (Array.isArray(allHistory)) { allHistory = {}; } // Fix old data format
+//     setHistory(allHistory[currentUsername] || []); // Get only this user's list
+
+//     // 4. Load course progress and update badges
+//     const savedProgress = JSON.parse(localStorage.getItem("courseProgress") || "{}");
+//     setCourseProgress(savedProgress); // Save the *entire* progress object
+//     updateEarnedBadges(savedProgress); // Calculate badges from it
+
+//     // 5. Load learning time
+//     const savedTime = JSON.parse(localStorage.getItem("learningTime") || "{}");
+//     setLearningTime(savedTime[currentUsername] || 0); // Get only this user's time
+
+//     // 6. Load avatar
+//     const savedAvatars = JSON.parse(localStorage.getItem("userAvatars") || "{}");
+//     setAvatar(savedAvatars[currentUsername] || null); // Get only this user's avatar
+
+//     // 7. Load decorations
+//     const decorationData = JSON.parse(localStorage.getItem("userDecorations") || "{}");
+//     const userDecorations = decorationData[currentUsername] || { unlocked: [], equipped: null };
+//     setUnlockedDecorations(userDecorations.unlocked);
+//     setEquippedDecoration(userDecorations.equipped);
+    
+//   }, [currentUsername, updateEarnedBadges]); // Re-runs if 'currentUsername' changes
+
+// --- ADD THIS NEW EFFECT ---
+  // EFFECT 2 (NEW): This effect loads all data *after* 'currentUsername' has been set.
   useEffect(() => {
     // Do nothing if 'currentUsername' is still null (waiting for Effect 1)
     if (!currentUsername) return; 
 
-    // --- Load all data from mock database and localStorage ---
+    const fetchProfileData = async () => {
+      try {
+        // 1. Fetch from your new FastAPI endpoint
+        // Make sure your FastAPI server is running (usually on port 8000)
+        const response = await fetch(`http://localhost:8000/profile/${currentUsername}`);
+        
+        if (!response.ok) {
+          throw new Error(`Profile not found: ${currentUsername}`);
+        }
+        
+        const data = await response.json();
 
-    // 1. Load static user info (name, bio, etc.)
-    const userInfo = USERS_DATA[currentUsername] || { name: "Guest", username: "guest", email: "", joined: "N/A", bio: "" };
-    setUser(userInfo);
-    setFormData(userInfo); // Pre-fill the edit form
+        // 2. Set all your states from this single API call
+        setUser(data.user);
+        setFormData(data.user); // Pre-fill the edit form
+        setAvatar(data.user.avatar_url || null);
+        
+        setFavorites(data.favorites || []);
+        setHistory(data.history || []);
+        setBadges(data.badges || []);
+        setLearningTime(data.learningTime || 0);
+        setProfileProgress(data.progress || {}); // Use the new progress state
+        
+        setUnlockedDecorations(data.decorations?.unlocked || []);
+        setEquippedDecoration(data.decorations?.equipped || null);
+        
+      } catch (error) {
+        console.error("Failed to fetch profile:", error);
+        // Handle error, e.g., show a "not found" message or redirect
+        setUser({ name: "User Not Found", username: "error", bio: "" });
+      }
+    };
 
-    // 2. Load user's favorites
-    let allFavorites = JSON.parse(localStorage.getItem("favorites") || "{}");
-    if (Array.isArray(allFavorites)) { allFavorites = {}; } // Fix old data format
-    setFavorites(allFavorites[currentUsername] || []); // Get only this user's list
-
-    // 3. Load user's history
-    let allHistory = JSON.parse(localStorage.getItem("history") || "{}");
-    if (Array.isArray(allHistory)) { allHistory = {}; } // Fix old data format
-    setHistory(allHistory[currentUsername] || []); // Get only this user's list
-
-    // 4. Load course progress and update badges
-    const savedProgress = JSON.parse(localStorage.getItem("courseProgress") || "{}");
-    setCourseProgress(savedProgress); // Save the *entire* progress object
-    updateEarnedBadges(savedProgress); // Calculate badges from it
-
-    // 5. Load learning time
-    const savedTime = JSON.parse(localStorage.getItem("learningTime") || "{}");
-    setLearningTime(savedTime[currentUsername] || 0); // Get only this user's time
-
-    // 6. Load avatar
-    const savedAvatars = JSON.parse(localStorage.getItem("userAvatars") || "{}");
-    setAvatar(savedAvatars[currentUsername] || null); // Get only this user's avatar
-
-    // 7. Load decorations
-    const decorationData = JSON.parse(localStorage.getItem("userDecorations") || "{}");
-    const userDecorations = decorationData[currentUsername] || { unlocked: [], equipped: null };
-    setUnlockedDecorations(userDecorations.unlocked);
-    setEquippedDecoration(userDecorations.equipped);
+    fetchProfileData();
     
-  }, [currentUsername, updateEarnedBadges]); // Re-runs if 'currentUsername' changes
+  }, [currentUsername]); // This effect re-runs if the user we are viewing changes
 
-
-  // EFFECT 3: This effect sets up listeners to keep the page in sync with other tabs.
-  useEffect(() => {
-    // Don't attach listeners if we don't know *which* user to listen for
-    if (!currentUsername) return;
+// // EFFECT 3: This effect sets up listeners to keep the page in sync with other tabs.
+//   useEffect(() => {
+//     // Don't attach listeners if we don't know *which* user to listen for
+//     if (!currentUsername) return;
     
-    // This function re-loads ALL data from localStorage
-    const handleStorageAndFocus = () => {
-      // (This is the same logic as EFFECT 2, just re-running to get fresh data)
-      let allFavorites = JSON.parse(localStorage.getItem("favorites") || "{}");
-      if (Array.isArray(allFavorites)) { allFavorites = {}; }
-      setFavorites(allFavorites[currentUsername] || []);
+//     // This function re-loads ALL data from localStorage
+//     const handleStorageAndFocus = () => {
+//       // (This is the same logic as EFFECT 2, just re-running to get fresh data)
+//       let allFavorites = JSON.parse(localStorage.getItem("favorites") || "{}");
+//       if (Array.isArray(allFavorites)) { allFavorites = {}; }
+//       setFavorites(allFavorites[currentUsername] || []);
 
-      let allHistory = JSON.parse(localStorage.getItem("history") || "{}");
-      if (Array.isArray(allHistory)) { allHistory = {}; }
-      setHistory(allHistory[currentUsername] || []);
+//       let allHistory = JSON.parse(localStorage.getItem("history") || "{}");
+//       if (Array.isArray(allHistory)) { allHistory = {}; }
+//       setHistory(allHistory[currentUsername] || []);
 
-      const savedProgress = JSON.parse(localStorage.getItem("courseProgress") || "{}");
-      setCourseProgress(savedProgress);
-      updateEarnedBadges(savedProgress);
+//       const savedProgress = JSON.parse(localStorage.getItem("courseProgress") || "{}");
+//       setCourseProgress(savedProgress);
+//       updateEarnedBadges(savedProgress);
 
-      const savedTime = JSON.parse(localStorage.getItem("learningTime") || "{}");
-      setLearningTime(savedTime[currentUsername] || 0);
+//       const savedTime = JSON.parse(localStorage.getItem("learningTime") || "{}");
+//       setLearningTime(savedTime[currentUsername] || 0);
       
-      const savedAvatars = JSON.parse(localStorage.getItem("userAvatars") || "{}");
-      setAvatar(savedAvatars[currentUsername] || null);
+//       const savedAvatars = JSON.parse(localStorage.getItem("userAvatars") || "{}");
+//       setAvatar(savedAvatars[currentUsername] || null);
 
-      const decorationData = JSON.parse(localStorage.getItem("userDecorations") || "{}");
-      const userDecorations = decorationData[currentUsername] || { unlocked: [], equipped: null };
-      setUnlockedDecorations(userDecorations.unlocked);
-      setEquippedDecoration(userDecorations.equipped);
-    };
+//       const decorationData = JSON.parse(localStorage.getItem("userDecorations") || "{}");
+//       const userDecorations = decorationData[currentUsername] || { unlocked: [], equipped: null };
+//       setUnlockedDecorations(userDecorations.unlocked);
+//       setEquippedDecoration(userDecorations.equipped);
+//     };
 
-    // Custom events dispatched by other components for instant updates
-    const handleHistoryUpdated = () => handleStorageAndFocus();
-    const handleFavoritesUpdated = () => handleStorageAndFocus();
+//     // Custom events dispatched by other components for instant updates
+//     const handleHistoryUpdated = () => handleStorageAndFocus();
+//     const handleFavoritesUpdated = () => handleStorageAndFocus();
 
-    // Listen for 'storage' events (changes in other tabs)
-    window.addEventListener("storage", handleStorageAndFocus);
-    // Listen for 'focus' events (user clicking back to this tab)
-    window.addEventListener("focus", handleStorageAndFocus);
-    // Listen for our custom events
-    window.addEventListener("favoritesUpdated", handleFavoritesUpdated);
-    window.addEventListener("historyUpdated", handleHistoryUpdated);
+//     // Listen for 'storage' events (changes in other tabs)
+//     window.addEventListener("storage", handleStorageAndFocus);
+//     // Listen for 'focus' events (user clicking back to this tab)
+//     window.addEventListener("focus", handleStorageAndFocus);
+//     // Listen for our custom events
+//     window.addEventListener("favoritesUpdated", handleFavoritesUpdated);
+//     window.addEventListener("historyUpdated", handleHistoryUpdated);
 
-    // Cleanup: Remove all listeners when the component unmounts
-    return () => {
-      window.removeEventListener("storage", handleStorageAndFocus);
-      window.removeEventListener("focus", handleStorageAndFocus);
-      window.removeEventListener("favoritesUpdated", handleFavoritesUpdated);
-      window.removeEventListener("historyUpdated", handleHistoryUpdated);
-    };
-  }, [updateEarnedBadges, currentUsername]); // Re-attach listeners if the user changes
+//     // Cleanup: Remove all listeners when the component unmounts
+//     return () => {
+//       window.removeEventListener("storage", handleStorageAndFocus);
+//       window.removeEventListener("focus", handleStorageAndFocus);
+//       window.removeEventListener("favoritesUpdated", handleFavoritesUpdated);
+//       window.removeEventListener("historyUpdated", handleHistoryUpdated);
+//     };
+//   }, [updateEarnedBadges, currentUsername]); // Re-attach listeners if the user changes
 
+  // // Calculates progress for a course, pulling from the *correct user's* data
+  // const calculateProgress = (courseId) => {
+  //   if (!currentUsername) return 0; // Safety check
+  //   const course = courses.find((course) => course.id === courseId);
+  //   const totalLectures = course ? course.totalLectures : 0;
+  //   if (totalLectures === 0) return 0; // Prevent divide by zero
 
-  // Calculates progress for a course, pulling from the *correct user's* data
+  //   // Get this user's progress from the main progress object
+  //   const userProgress = courseProgress[currentUsername] || {};
+  //   const courseData = userProgress[courseId] || {};
+  //   const completedLectures = courseData.completedLectures || [];
+
+  //   const progress = (completedLectures.length / totalLectures) * 100;
+  //   return progress;
+  // };
+
+  // Calculates progress for a course, pulling from the *new* progress state
   const calculateProgress = (courseId) => {
-    if (!currentUsername) return 0; // Safety check
     const course = courses.find((course) => course.id === courseId);
     const totalLectures = course ? course.totalLectures : 0;
     if (totalLectures === 0) return 0; // Prevent divide by zero
 
-    // Get this user's progress from the main progress object
-    const userProgress = courseProgress[currentUsername] || {};
-    const courseData = userProgress[courseId] || {};
-    const completedLectures = courseData.completedLectures || [];
+    // Get this user's completed lectures from the simple progress object
+    const completedLectures = profileProgress[courseId] || [];
 
     const progress = (completedLectures.length / totalLectures) * 100;
     return progress;
   };
 
-  
   // EFFECT 4: This effect runs ONCE on mount to create background particles
   useEffect(() => {
     const baseParticles = [ /* ... particle positions ... */ ];
@@ -359,43 +514,93 @@ export default function ProfilePage() {
   const handleEditClick = () => { setFormData(user); setIsEditing(true); };
   // Called when "Cancel" is clicked
   const handleCancelClick = () => { setIsEditing(false); }; 
-  // Called when "Save" is clicked
-  const handleSaveClick = () => { 
-    // Merge the edited 'formData' into the 'user' object
-    const updatedUser = { ...user, ...formData };
-    setUser(updatedUser); // Update the state
-    
-    // In a real app, this would be an API call to a database.
-    // Here, we just update the mock data object.
-    USERS_DATA[currentUsername] = updatedUser; 
-    
-    setIsEditing(false); // Exit edit mode
+  // Called when "Save" is clicked — now sends a PATCH to the backend
+// Called when "Save" is clicked
+  const handleSaveClick = async () => { 
+    // user.id comes from the 'user' state, set by your fetchProfileData hook
+    if (!user || !user.id) {
+      alert("Error: User data is not loaded.");
+      return;
+    }
+
+    const apiEndpoint = `http://localhost:8000/profile/${user.id}`;
+
+    try {
+      const response = await fetch(apiEndpoint, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData) // Send the form data (name, bio, email)
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to save profile.");
+      }
+
+      const updatedUser = await response.json();
+
+      // Update the local state with the saved data
+      setUser(updatedUser); 
+      setIsEditing(false); // Exit edit mode
+      
+    } catch (error) {
+      console.error("Save error:", error);
+      alert("Error saving profile. Please try again.");
+    }
   };
+  
   // Updates 'formData' state as the user types in an input
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
-  // Called when a new avatar file is selected
-  const handleAvatarChange = (e) => {
-    if (!currentUsername) return; // Safety check
+// Called when a new avatar file is selected
+  const handleAvatarChange = async (e) => {
+    if (!user || !user.id) {
+      alert("Error: User data is not loaded.");
+      return;
+    }
     const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader(); // Use FileReader to read the file
-      reader.onload = () => {
-        // 'reader.result' is a base64 Data URL (e.g., "data:image/png;base64,...")
-        const avatarDataUrl = reader.result;
-        setAvatar(avatarDataUrl); // Update the UI
-        // Save the avatar to localStorage under this user's name
-        const savedAvatars = JSON.parse(localStorage.getItem("userAvatars") || "{}");
-        savedAvatars[currentUsername] = avatarDataUrl;
-        localStorage.setItem("userAvatars", JSON.stringify(savedAvatars));
-        // Dispatch a 'storage' event to notify other components/tabs
-        window.dispatchEvent(new Event("storage"));
-      };
-      reader.readAsDataURL(file); // Start reading the file
+    if (!file) return;
+
+    // --- 1. Upload to Cloudinary ---
+    const cloudinaryFormData = new FormData();
+    cloudinaryFormData.append("file", file);
+    cloudinaryFormData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET);
+
+    try {
+      const cloudinaryRes = await fetch(`https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`, {
+        method: "POST",
+        body: cloudinaryFormData
+      });
+      
+      if (!cloudinaryRes.ok) throw new Error("Cloudinary upload failed.");
+      
+      const cloudinaryData = await cloudinaryRes.json();
+      const newAvatarUrl = cloudinaryData.secure_url;
+
+      // --- 2. Save the new URL to our backend ---
+      const apiEndpoint = `http://localhost:8000/profile/avatar/${user.id}`;
+      const backendRes = await fetch(apiEndpoint, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ avatar_url: newAvatarUrl })
+      });
+
+      if (!backendRes.ok) throw new Error("Failed to save avatar URL to backend.");
+      
+      const updatedUser = await backendRes.json();
+
+      // --- 3. Update UI ---
+      setAvatar(newAvatarUrl); // Update the <img> src
+      setUser(updatedUser); // Update the user state
+
+    } catch (error) {
+      console.error("Avatar change error:", error);
+      alert("Error changing avatar. Please try again.");
     }
   };
-  // --- End User Info Handlers ---
-
   // --- Decoration Handlers ---
   // Helper to get the CSS class for a decoration ID
   const getDecorationClass = (decorationId) => {
@@ -411,26 +616,36 @@ export default function ProfilePage() {
     }
     return "None";
   };
-  // Called when a new decoration is selected in the edit form
-  const handleEquipDecoration = (decorationId) => {
-    if (!currentUsername) return;
+// Called when a new decoration is selected in the edit form
+  const handleEquipDecoration = async (decorationId) => {
+    if (!user || !user.id) {
+      alert("Error: User data is not loaded.");
+      return;
+    }
+    
     // If "none" is clicked, set to null. Otherwise, use the ID.
     const newEquippedId = decorationId === "none" ? null : decorationId;
-    setEquippedDecoration(newEquippedId); // Update the UI
-    
-    // Save the new equipped decoration to localStorage
-    const decorationData = JSON.parse(localStorage.getItem("userDecorations") || "{}");
-    if (!decorationData[currentUsername]) {
-      // Ensure the user's object exists
-      decorationData[currentUsername] = { unlocked: [], equipped: null };
+    const apiEndpoint = `http://localhost:8000/profile/decoration/${user.id}`;
+
+    try {
+      const response = await fetch(apiEndpoint, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ equipped: newEquippedId })
+      });
+
+      if (!response.ok) throw new Error("Failed to equip decoration.");
+      
+      // Update UI immediately
+      setEquippedDecoration(newEquippedId); 
+
+    } catch (error) {
+      console.error("Equip error:", error);
+      alert("Error equipping decoration. Please try again.");
     }
-    decorationData[currentUsername].equipped = newEquippedId;
-    localStorage.setItem("userDecorations", JSON.stringify(decorationData));
-    
-    // Notify other components/tabs
-    window.dispatchEvent(new Event("storage"));
   };
-  // --- End Decoration Handlers ---
 
   // Data for the sidebar menu
   const menuItemsPrimary = [
@@ -442,7 +657,9 @@ export default function ProfilePage() {
   
   // A boolean flag to check if we are viewing our *own* profile
   // This is used to show/hide the "Edit Profile" button, avatar change, etc.
-  const isViewingOwnProfile = currentUsername === LOGGED_IN_USERNAME;
+  // const isViewingOwnProfile = currentUsername === LOGGED_IN_USERNAME;
+
+  const isViewingOwnProfile = loggedInUser && loggedInUser.user_metadata.username === currentUsername;
 
   // --- Loading State Render ---
   // If 'currentUsername' is still null, we are still waiting for EFFECT 1
@@ -695,12 +912,12 @@ export default function ProfilePage() {
               <Dropdown 
                 label="FAVORITE" 
                 icon="/icons/heart.png"
-                // When opened, re-fetch favorites data from localStorage
-                onOpen={() => {
-                  let allFavorites = JSON.parse(localStorage.getItem("favorites") || "{}");
-                  if (Array.isArray(allFavorites)) { allFavorites = {}; }
-                  setFavorites(allFavorites[currentUsername] || []);
-                }}
+                // // When opened, re-fetch favorites data from localStorage
+                // onOpen={() => {
+                //   let allFavorites = JSON.parse(localStorage.getItem("favorites") || "{}");
+                //   if (Array.isArray(allFavorites)) { allFavorites = {}; }
+                //   setFavorites(allFavorites[currentUsername] || []);
+                // }}
               >
                 {/* If there are favorites, map over them */}
                 {favorites.length > 0 ? (
@@ -738,18 +955,18 @@ export default function ProfilePage() {
                 label="HISTORY" 
                 icon="/icons/history.png" 
                 // When opened, re-fetch all data to ensure it's up to date
-                onOpen={() => {
-                  let allHistory = JSON.parse(localStorage.getItem("history") || "{}");
-                  if (Array.isArray(allHistory)) { allHistory = {}; }
-                  setHistory(allHistory[currentUsername] || []);
+                // onOpen={() => {
+                //   let allHistory = JSON.parse(localStorage.getItem("history") || "{}");
+                //   if (Array.isArray(allHistory)) { allHistory = {}; }
+                //   setHistory(allHistory[currentUsername] || []);
                   
-                  const savedProgress = JSON.parse(localStorage.getItem("courseProgress") || "{}");
-                  setCourseProgress(savedProgress);
-                  updateEarnedBadges(savedProgress);
+                //   const savedProgress = JSON.parse(localStorage.getItem("courseProgress") || "{}");
+                //   setCourseProgress(savedProgress);
+                //   updateEarnedBadges(savedProgress);
                   
-                  const savedTime = JSON.parse(localStorage.getItem("learningTime") || "{}");
-                  setLearningTime(savedTime[currentUsername] || 0);
-                }}
+                //   const savedTime = JSON.parse(localStorage.getItem("learningTime") || "{}");
+                //   setLearningTime(savedTime[currentUsername] || 0);
+                // }}
               >
                 {/* If there is history, map over it */}
                 {history.length > 0 ? (
