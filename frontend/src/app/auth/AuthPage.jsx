@@ -85,6 +85,7 @@ export default function AuthPage() {
         const email = e.target.email.value;
         const password = e.target.password.value;
         const confirm =e.target.confirm.value;
+        const username = e.target.username.value;
 
         if(password !== confirm) throw new Error("Passwords do not match");
 
