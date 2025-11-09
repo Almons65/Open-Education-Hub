@@ -719,16 +719,39 @@ export default function RealCoursePage() {
   }, [courseId]);
 
   // ... (saveLearningTime 関数 はそのまま) ...
-  const saveLearningTime = (seconds) => {
+  // const saveLearningTime = (seconds) => {
+  //   if (seconds === 0) return;
+  //   try {
+  //     const learningTime = JSON.parse(localStorage.getItem("learningTime") || "{}");
+  //     const currentTotal = learningTime[currentUser] || 0;
+  //     learningTime[currentUser] = currentTotal + seconds;
+  //     localStorage.setItem("learningTime", JSON.stringify(learningTime));
+  //     console.log(`Saved ${seconds} seconds for ${currentUser}. New total: ${learningTime[currentUser]}`);
+  //   } catch (error) {
+  //     console.error("Failed to save learning time:", error);
+  //   }
+  // };
+
+  const saveLearningTime = async (seconds) => {
+    // 0秒なら何もしない
     if (seconds === 0) return;
+
     try {
-      const learningTime = JSON.parse(localStorage.getItem("learningTime") || "{}");
-      const currentTotal = learningTime[currentUser] || 0;
-      learningTime[currentUser] = currentTotal + seconds;
-      localStorage.setItem("learningTime", JSON.stringify(learningTime));
-      console.log(`Saved ${seconds} seconds for ${currentUser}. New total: ${learningTime[currentUser]}`);
+      // Supabaseの 'increment_learning_time' 関数を呼び出す
+      // { seconds_to_add: ... } がSQL関数に渡す引数です
+      const { error } = await supabase.rpc('increment_learning_time', {
+        seconds_to_add: seconds
+      });
+
+      if (error) {
+        // 失敗した場合、コンソールにエラーを表示
+        console.error("Failed to save learning time:", error.message);
+      } else {
+        // 成功した場合
+        console.log(`Saved ${seconds} seconds to Supabase.`);
+      }
     } catch (error) {
-      console.error("Failed to save learning time:", error);
+      console.error("Error calling RPC function:", error);
     }
   };
 

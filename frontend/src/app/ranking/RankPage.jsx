@@ -342,8 +342,9 @@ export default function RankingPage() {
       </div>
 
       {/* --- Main Content (Leaderboard) --- */}
-      <div className={styles.container}>
-        <h2 className={styles.title}>Leaderboard</h2>
+      {/*<div className={styles.container}>*/}
+      <div className={`${styles.container} ${sidebarOpen ? styles.sidebarActive : ""}`}>
+      <h2 className={styles.title}>Leaderboard</h2>
         {/* Check if there are any rankings to display */}
         {rankings.length === 0 ? (
           <p>No learning records yet.</p>
