@@ -40,7 +40,7 @@
   border-right: 2px solid rgba(0, 0, 0, 0.1);
   box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
   position: fixed; /* Changed from 'fixed' to scroll with the page if needed */
-  z-index: 1;
+  z-index: 2;
 }
 
 /* Style for the sidebar when it's open (toggled by React) */
@@ -224,7 +224,7 @@
 
 /* --- Background Particles --- */
 .particles {
-  position: absolute;
+  position: fixed;
   width: 100%;
   height: 100%;
   z-index: 1; /* Sits above the background but below content */
@@ -271,11 +271,11 @@
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
   font-family: "Inter", sans-serif;
   color: #333; 
-  position: fixed;
+  position: relative;
   top: 0;
   left: 0;
   height: 100vh;
-  z-index: 2; /* Sits on top of particles */
+  z-index: 1; /* Sits on top of particles */
 }
 
 .container.sidebarActive {
