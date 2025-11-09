@@ -157,3 +157,4 @@ async def update_user_profile(user_id: str, profile: ProfileUpdate):
         raise HTTPException(status_code=400, detail="Failed to update profile")
         
     return query.data[0] # Return the updated user data
+# End of backend/main.py
