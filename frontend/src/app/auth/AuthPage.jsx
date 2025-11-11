@@ -308,7 +308,7 @@ const FormLogin = ({ active, loading, showPassword, setShowPassword, handleSubmi
     {/* Input group for Email or Username */}
     <div className={styles["input-group"]}>
       <input type="text" required placeholder=" " name="identifier" />
-      <label>Email or Username</label>
+      <label>Email</label>
       <span className={styles.underline}></span>
       <img src="/icons/user-icon.png" alt="user icon" className={styles["user-icon"]} />
     </div>
@@ -529,7 +529,7 @@ const LoadingButton = ({ loading, text }) => {
       {/* Conditionally render the loading GIF wrapper */}
       {showGif && (
         <div className={styles["loading-gif"]}>
-          <img src="/infinite_loading.gif" alt="loading" />
+          <img src="/icons/infinite_loading.gif" alt="loading" />
         </div>
       )}
     </div>
