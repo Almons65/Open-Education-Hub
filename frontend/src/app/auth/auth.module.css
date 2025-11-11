@@ -421,3 +421,11 @@
   .input-group { width: 100%; }
   .submit-btn-wrapper { width: 100%; }
 }
+
+.form-subtitle {
+  color: #333; /* これで濃いグレー（ほぼ黒）になります */
+  text-align: center; /* 中央揃え（推奨） */
+  margin-top: -10px; /* タイトルとの間隔を調整 */
+  margin-bottom: 20px; /* フォームとの間隔を調整 */
+  font-size: 0.95rem;
+}

@@ -28,18 +28,19 @@ export default function AuthPage() {
     login: false,
     signup: false,
     reset: false,
+    updatePassword: false,
   });
 
-  // Get direct access to the main card's DOM element (for height changes) 
+  // Get direct access to the main card's DOM element (for height changes)
   const cardRef = useRef(null);
   // Get direct acces to the tab slider's DOM element (for position changes)
   const sliderRef = useRef(null);
   // A helper object mapping each tab to its required card height in pixels
-  const tabHeights = { login: 640, signup: 710, reset: 530 };
+  const tabHeights = { login: 640, signup: 710, reset: 530, updatePassword: 550 };
 
   // Effect hook runs whenever the 'activeTab' or 'tabHeights' values change
   useEffect(() => {
-    // -- Animate the card's height -- 
+    // -- Animate the card's height --
     if (cardRef.current) { // Check if the card ref is attached to an element
       // Set the card's CSS height based on the new active tab
       cardRef.current.style.height = tabHeights[activeTab] + "px";
@@ -48,12 +49,18 @@ export default function AuthPage() {
     // -- Animate the tab slider's position --
     if (sliderRef.current) { // Check if the slider ref is attached
       // Find the DOM element for the *currently active* tab
+
+      if (activeTab === 'updatePassword') {
+        sliderRef.current.style.width = '0px';
+        return; // これ以降の処理をスキップ
+      }
+
       const activeTabElement = document.getElementById(`tab-${activeTab}`);
-      
+
       if (activeTabElement) { // If the active tab element exists
         // Get its horizontal position (offsetLeft) and its width (offsetWidth)
         const { offsetLeft, offsetWidth } = activeTabElement;
-        
+
         // Set the slider's width to match the active tab's width
         sliderRef.current.style.width = `${offsetWidth}px`;
         // Move the slider horizontally to align with the active tab
@@ -62,6 +69,24 @@ export default function AuthPage() {
     }
     // The dependency array ensures this code runs only when 'activeTab' or 'tabHeights' changes
   }, [activeTab, tabHeights]);
+
+  // Supabase の認証状態の変化を監視
+  useEffect(() => {
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+        async (event, session) => {
+          // パスワードリセットのリンクから来た場合
+          if (event === "PASSWORD_RECOVERY") {
+            // "新しいパスワード設定" モードに切り替え
+            setActiveTab("updatePassword");
+          }
+        }
+    );
+
+    // クリーンアップ関数
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
 
   // Function to handle form submissions
   const handleSubmit = async (e) => {
@@ -92,7 +117,7 @@ export default function AuthPage() {
         const {error} = await supabase.auth.signUp({
           email,
           password,
-          options: { 
+          options: {
             data: {
               username: username
             }
@@ -108,6 +133,25 @@ export default function AuthPage() {
         const {error} = await supabase.auth.resetPasswordForEmail(email);
         if(error) throw error;
         alert("Password reset link sent!");
+      }
+
+      if (activeTab === "updatePassword") {
+        const password = e.target.password.value;
+        const confirm = e.target.confirm.value;
+
+        if (password !== confirm) {
+          throw new Error("Passwords do not match");
+        }
+
+        // Supabase の updateUser を呼び出す
+        const { error } = await supabase.auth.updateUser({
+          password: password,
+        });
+
+        if (error) throw error;
+
+        alert("Password updated successfully! Please log in.");
+        setActiveTab("login"); // ログインタブに戻す
       }
     }catch(err){
       alert(err.message);
@@ -139,7 +183,7 @@ export default function AuthPage() {
           ))}
         </div>
 
-        {/* This container centers the authentication card */}  
+        {/* This container centers the authentication card */}
         <div className={styles["auth-card-container"]}>
           {/* The main card element, attached to the cardRef for height animation */}
           <div className={styles["auth-card"]} ref={cardRef}>
@@ -198,48 +242,56 @@ export default function AuthPage() {
             </div>
 
             {/* Container for the tab navigation */}
-            <div className={styles["auth-tabs"]}>
-              {/* Map over the tab names to create them dynamically */}
-              {["login", "signup", "reset"].map((tab) => (
-                <div
-                  key={tab} // React key for list rendering
-                  id={`tab-${tab}`} // Unique ID for the useEffect to find
-                  // Apply 'active' class if this tab is the activeTab
-                  className={`${styles.tabItem} ${activeTab === tab ? styles.active : ""}`}
-                  // Set this tab as active when clicked
-                  onClick={() => setActiveTab(tab)}
-                >
-                  {/* Capitalize the first letter of the tab name */}
-                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                </div>
-              ))}
-              {/* The animated slider element, attached to its ref */}
-              <div className={styles.slider} ref={sliderRef} />
-            </div>
+            {activeTab !== 'updatePassword' ? (
+                <>
+                  {/* Container for the tab navigation */}
+                  <div className={styles["auth-tabs"]}>
+                    {["login", "signup", "reset"].map((tab) => (
+                        <div
+                            key={tab}
+                            id={`tab-${tab}`}
+                            className={`${styles.tabItem} ${activeTab === tab ? styles.active : ""}`}
+                            onClick={() => setActiveTab(tab)}
+                        >
+                          {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                        </div>
+                    ))}
+                    <div className={styles.slider} ref={sliderRef} />
+                  </div>
 
-            {/* Render the Login form component */}
-            <FormLogin
-              active={activeTab === "login"} // Pass 'true' if this is the active form
-              loading={loading.login} // Pass the loading state for this form
-              showPassword={showPassword} // Pass the password visibility state
-              setShowPassword={setShowPassword} // Pass the function to update password visibility
-              handleSubmit={handleSubmit} // Pass the universal submit handler
-              handleOAuthLogin={handleOAuthLogin}
-            />
-            {/* Render the Signup form component */}
-            <FormSignup
-              active={activeTab === "signup"} // Pass 'true' if this is the active form
-              loading={loading.signup} // Pass the loading state for this form
-              showPassword={showPassword} // Pass the password visibility state
-              setShowPassword={setShowPassword} // Pass the function to update password visibility
-              handleSubmit={handleSubmit} // Pass the universal submit handler
-            />
-            {/* Render the Reset Password form component */}
-            <FormReset
-              active={activeTab === "reset"} // Pass 'true' if this is the active form
-              loading={loading.reset} // Pass the loading state for this form
-              handleSubmit={handleSubmit} // Pass the universal submit handler
-            />
+                  {/* Render the Login form component */}
+                  <FormLogin
+                      active={activeTab === "login"}
+                      loading={loading.login}
+                      showPassword={showPassword}
+                      setShowPassword={setShowPassword}
+                      handleSubmit={handleSubmit}
+                      handleOAuthLogin={handleOAuthLogin}
+                  />
+                  {/* Render the Signup form component */}
+                  <FormSignup
+                      active={activeTab === "signup"}
+                      loading={loading.signup}
+                      showPassword={showPassword}
+                      setShowPassword={setShowPassword}
+                      handleSubmit={handleSubmit}
+                  />
+                  {/* Render the Reset Password form component */}
+                  <FormReset
+                      active={activeTab === "reset"}
+                      loading={loading.reset}
+                      handleSubmit={handleSubmit}
+                  />
+                </>
+            ) : (
+              <FormUpdatePassword
+              active={activeTab === "updatePassword"}
+              loading={loading.updatePassword}
+              showPassword={showPassword}
+              setShowPassword={setShowPassword}
+              handleSubmit={handleSubmit}
+              />
+            )}
           </div>
         </div>
       </div>
@@ -392,6 +444,55 @@ const FormReset = ({ active, loading, handleSubmit }) => (
     {/* The custom loading-aware submit button */}
     <LoadingButton loading={loading} text="Send Reset Link" />
   </form>
+);
+
+const FormUpdatePassword = ({ active, loading, showPassword, setShowPassword, handleSubmit }) => (
+    <form className={`${styles["auth-form"]} ${active ? styles.visible : ""}`} onSubmit={handleSubmit}>
+      <h2 className={styles["form-title"]}>Set New Password</h2>
+      <p className={styles["form-subtitle"]}>Please enter your new password below.</p>
+
+      {/* Input group for Password */}
+      <div className={styles["input-group"]}>
+        <input type={showPassword.signup.password ? "text" : "password"} name="password" required placeholder=" " />
+        <label>New Password</label>
+        <span className={styles.underline}></span>
+        <Image
+            src={showPassword.signup.password ? "/icons/eye-open-icon.png" : "/icons/eye-close-icon.png"}
+            alt="toggle password"
+            width={35}
+            height={20}
+            className={styles["input-icon"]}
+            onClick={() =>
+                setShowPassword(prev => ({
+                  ...prev,
+                  signup: { ...prev.signup, password: !prev.signup.password }
+                }))
+            }
+        />
+      </div>
+
+      {/* Input group for Confirm Password */}
+      <div className={styles["input-group"]}>
+        <input type={showPassword.signup.confirm ? "text" : "password"} name="confirm" required placeholder=" " />
+        <label>Confirm New Password</label>
+        <span className={styles.underline}></span>
+        <Image
+            src={showPassword.signup.confirm ? "/icons/eye-open-icon.png" : "/icons/eye-close-icon.png"}
+            alt="toggle password"
+            width={35}
+            height={20}
+            className={styles["input-icon"]}
+            onClick={() =>
+                setShowPassword(prev => ({
+                  ...prev,
+                  signup: { ...prev.signup, confirm: !prev.signup.confirm }
+                }))
+            }
+        />
+      </div>
+
+      <LoadingButton loading={loading} text="Update Password" />
+    </form>
 );
 
 // -- LoadingButton Component --

@@ -28,35 +28,68 @@ export default function CourseDetail({ course }) {
   const arrowRef = useRef(null);
 
   // This function is called when the "Attend Course" button is clicked
-  const attendCourse = () => {
-    // Safety check: do nothing if the course prop isn't available
-    if (!course) return;
+  const attendCourse = async () => {
 
-    // --- Update the user-specific "Recently Viewed" history ---
+    if (!course || !loggedInUser) {
+      alert("you should be logged in.");
+      return;
+    }
 
-    // 1. Get the main history object from localStorage (or an empty object)
-    let historyData = JSON.parse(localStorage.getItem("history") || "{}");
-    // 2. Fix for old data: If 'historyData' is an array (from a bug), reset it
-    if (Array.isArray(historyData)) { historyData = {}; }
+    try {
+      // 1. send post requenst to history endpoint
+      const endpoint = `http://localhost:8000/profile/history/${loggedInUser.id}`;
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ course_id: course.id }),
+      });
 
-    // 3. Get the personal history list for *this* user
-    let userHistory = historyData[CURRENT_USERNAME] || [];
+      if (!response.ok) {
+        throw new Error("Failed to update history");
+      }
 
-    // 4. Remove any old instance of this course ID to prevent duplicates
-    userHistory = userHistory.filter(id => id !== course.id);
-    // 5. Add the current course ID to the *front* of the list (as most recent)
-    userHistory.unshift(course.id);
+      window.dispatchEvent(new Event("historyUpdated"));
 
-    // 6. Put the user's updated list back into the main history object
-    historyData[CURRENT_USERNAME] = userHistory;
-    // 7. Save the updated main object back to localStorage
-    localStorage.setItem("history", JSON.stringify(historyData));
-    
-    // 8. Dispatch a custom event to notify other components (like ProfilePage) to refresh
-    window.dispatchEvent(new Event("historyUpdated"));
+      router.push(`/courses/${course.id}/Real_course`);
 
-    // 9. Navigate the user to the actual course-taking page
-    router.push(`/courses/${course.id}/Real_course`);
+    } catch (error) {
+      console.error("Attend course error:", error);
+      router.push(`/courses/${course.id}/Real_course`);
+    }
+
+
+
+
+    // // Safety check: do nothing if the course prop isn't available
+    // if (!course) return;
+    //
+    // // --- Update the user-specific "Recently Viewed" history ---
+    //
+    // // 1. Get the main history object from localStorage (or an empty object)
+    // let historyData = JSON.parse(localStorage.getItem("history") || "{}");
+    // // 2. Fix for old data: If 'historyData' is an array (from a bug), reset it
+    // if (Array.isArray(historyData)) { historyData = {}; }
+    //
+    // // 3. Get the personal history list for *this* user
+    // let userHistory = historyData[CURRENT_USERNAME] || [];
+    //
+    // // 4. Remove any old instance of this course ID to prevent duplicates
+    // userHistory = userHistory.filter(id => id !== course.id);
+    // // 5. Add the current course ID to the *front* of the list (as most recent)
+    // userHistory.unshift(course.id);
+    //
+    // // 6. Put the user's updated list back into the main history object
+    // historyData[CURRENT_USERNAME] = userHistory;
+    // // 7. Save the updated main object back to localStorage
+    // localStorage.setItem("history", JSON.stringify(historyData));
+    //
+    // // 8. Dispatch a custom event to notify other components (like ProfilePage) to refresh
+    // window.dispatchEvent(new Event("historyUpdated"));
+    //
+    // // 9. Navigate the user to the actual course-taking page
+    // router.push(`/courses/${course.id}/Real_course`);
   };
 
   //store currentuser information

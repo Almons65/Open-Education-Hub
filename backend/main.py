@@ -73,25 +73,30 @@ async def get_user_profile(username: str):
         .eq("user_id", user_id) \
         .order("created_at", desc=False) \
         .execute()
-    history_query = supabase.table("view_history").select("course_id").eq("user_id", user_id).order("viewed_at", desc=True).limit(10).execute()
+    history_query = supabase.table("view_history") \
+        .select("course_id") \
+        .eq("user_id", user_id) \
+        .order("viewed_at", desc=True) \
+        .limit(10) \
+        .execute()
     achievements_query = supabase.table("user_achievements").select("*").eq("user_id", user_id).execute()
-    progress_query = supabase.table("course_progress").select("course_id, completed_lectures").eq("user_id", user_id).execute()
+    progress_query = supabase.table("lecture_progress").select("lecture_id").eq("user_id", user_id).execute()
     
     # 3. Combine it all into one response
-    
-    progress_dict = {p["course_id"]: p["completed_lectures"] for p in progress_query.data}
+
+    progress_list = [p["lecture_id"] for p in progress_query.data]
 
     profile_response = {
         "user": user_data,
-        
+
         # It gets 'learning_time' from user_data, with a fallback of 0
-        "learningTime": user_data.get("learning_time", 0), 
-        
+        "learningTime": user_data.get("learning_time", 0),
+
         "decorations": decorations_query.data[0] if decorations_query.data else {"unlocked": [], "equipped": None},
         "favorites": [f["course_id"] for f in favorites_query.data],
         "history": [h["course_id"] for h in history_query.data],
         "badges": achievements_query.data,
-        "progress": progress_dict
+        "progress": progress_list
     }
     
     return profile_response
@@ -186,3 +191,39 @@ async def remove_favorite(user_id: str, course_id: str):
     if not query.data:
         raise HTTPException(status_code=404, detail="Favorite not found or failed to remove")
     return {"message": "Favorite removed"}
+
+
+@app.post("/profile/history/{user_id}")
+async def add_history(user_id: str, favorite: FavoriteRequest):
+    data = {
+        "user_id": user_id,
+        "course_id": favorite.course_id,
+        "viewed_at": "now()" # 常に現在時刻で更新
+    }
+    # 複合主キー (user_id, course_id) が競合したら、viewed_at を "now()" で更新する
+    query = supabase.table("view_history").upsert(data, on_conflict="user_id, course_id").execute()
+
+    if not query.data:
+        raise HTTPException(status_code=400, detail="Failed to add history")
+    return query.data
+
+@app.get("/lectures")
+async def get_all_lectures():
+    query = supabase.table("lectures").select("*").execute()
+    if not query.data:
+        raise HTTPException(status_code=404, detail="No lectures found")
+    return query.data
+
+class ProgressRequest(BaseModel):
+    lecture_id: uuid.UUID
+
+@app.post("/progress/complete/{user_id}")
+async def mark_lecture_complete(user_id: str, progress: ProgressRequest):
+    data = {
+        "user_id": user_id,
+        "lecture_id": str(progress.lecture_id), # ★ UUIDを文字列(str)に変換
+    }
+    query = supabase.table("lecture_progress").upsert(data, on_conflict="user_id, lecture_id").execute()
+    if not query.data:
+        raise HTTPException(status_code=400, detail="Failed to mark as complete")
+    return query.data
