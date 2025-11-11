@@ -6,6 +6,9 @@ from fastapi.middleware.cors import CORSMiddleware # Import CORS
 import uuid
 from pydantic import BaseModel, EmailStr
 
+from pydantic import BaseModel
+from typing import Optional
+
 # Load environment variables (SUPABASE_URL, SUPABASE_SERVICE_KEY)
 load_dotenv()
 
@@ -46,119 +49,6 @@ class NewUser(BaseModel):
 def root():
     return {"message": "FastAPI connected to Supabase"}
 
-# ---------------------------------
-# --- 4. 新しい POST エンドポイント ---
-# サインアップ直後にReactから呼び出される
-# ---------------------------------
-@app.post("/profile")
-async def create_profile(new_user: NewUser):
-    """
-    Supabaseでのサインアップ直後に呼び出される。
-    Supabaseの "users" テーブルと "decorations" テーブルに
-    新しいユーザーのデフォルト行を作成します。
-    """
-
-    # 1. "users" テーブルに基本情報を作成
-    # learning_time: 0 をデフォルト値として挿入
-    user_insert_data = {
-        "id": str(new_user.id),
-        "username": new_user.username,
-        "name": new_user.name,
-        "email": new_user.email,
-        "learning_time": 0,
-        "bio": f"Welcome, {new_user.name}!",
-        # joined と avatar_url はDBのデフォルト値に任せる
-    }
-
-    try:
-        user_query = supabase.table("users").insert(user_insert_data).execute()
-
-        if not user_query.data:
-            raise HTTPException(status_code=500, detail="Failed to create user row in 'users' table")
-
-    except Exception as e:
-        # username または email が既に存在する場合 (Unique制約違反)
-        if "unique constraint" in str(e):
-            raise HTTPException(status_code=409, detail=f"Username or email already exists: {e}")
-        raise HTTPException(status_code=500, detail=f"Error creating user profile: {e}")
-
-    # 2. "decorations" テーブルにデフォルト行を作成
-    # これにより、GET /profile が空のデータを見つけられる
-    decorations_insert_data = {
-        "user_id": str(new_user.id),
-        "unlocked": [],
-        "equipped": None
-    }
-
-    try:
-        decorations_query = supabase.table("decorations").insert(decorations_insert_data).execute()
-
-        if not decorations_query.data:
-            raise HTTPException(status_code=500, detail="Failed to create user row in 'decorations' table")
-
-    except Exception as e:
-        # ここで失敗した場合、"users" にはデータが残ってしまう
-        # （本番環境では "users" 行を削除するロールバック処理が望ましい）
-        raise HTTPException(status_code=500, detail=f"User created, but failed to create decorations: {e}")
-
-    # 3. 成功
-    # 挿入された "users" のデータを返す
-    return user_query.data[0]
-
-
-# @app.get("/profile/{username}")
-# async def get_user_profile(username: str):
-    
-#     # 1. Get the user's main profile info
-#     user_query = supabase.table("users").select("*").eq("username", username).execute()
-    
-#     if not user_query.data:
-#         raise HTTPException(status_code=404, detail=f"User not found with username: {username}")
-        
-#     user_data = user_query.data[0] 
-#     user_id = user_data["id"] 
-
-#     # 2. Get all other data related to this user in parallel
-    
-#     # --- CHANGED LINE: Removed .single() ---
-#     time_query = supabase.table("learning_time").select("total_seconds").eq("user_id", user_id).execute()
-    
-#     # --- CHANGED LINE: Removed .single() ---
-#     decorations_query = supabase.table("decorations").select("unlocked, equipped").eq("user_id", user_id).execute()
-    
-#     # Get user favorites
-#     favorites_query = supabase.table("favorites").select("course_id").eq("user_id", user_id).execute()
-    
-#     # Get user's recent history (last 10 viewed)
-#     history_query = supabase.table("view_history").select("course_id").eq("user_id", user_id).order("viewed_at", desc=True).limit(10).execute()
-    
-#     # Get all earned achievements (badges/medals)
-#     achievements_query = supabase.table("user_achievements").select("*").eq("user_id", user_id).execute()
-
-#     # Get course progress
-#     progress_query = supabase.table("course_progress").select("course_id, completed_lectures").eq("user_id", user_id).execute()
-    
-#     # 3. Combine it all into one response
-    
-#     progress_dict = {p["course_id"]: p["completed_lectures"] for p in progress_query.data}
-
-#     profile_response = {
-#         "user": user_data,
-        
-#         # --- CHANGED LINE: Get first item from list, or 0 ---
-#         "learningTime": time_query.data[0]["total_seconds"] if time_query.data else 0,
-        
-#         # --- CHANGED LINE: Get first item from list, or default object ---
-#         "decorations": decorations_query.data[0] if decorations_query.data else {"unlocked": [], "equipped": None},
-        
-#         "favorites": [f["course_id"] for f in favorites_query.data],
-#         "history": [h["course_id"] for h in history_query.data],
-#         "badges": achievements_query.data,
-#         "progress": progress_dict
-#     }
-    
-#     return profile_response
-
 @app.get("/profile/{username}")
 async def get_user_profile(username: str):
     
@@ -190,7 +80,6 @@ async def get_user_profile(username: str):
     profile_response = {
         "user": user_data,
         
-        # --- THIS LINE IS NOW FIXED ---
         # It gets 'learning_time' from user_data, with a fallback of 0
         "learningTime": user_data.get("learning_time", 0), 
         
@@ -229,3 +118,31 @@ async def update_user_profile(user_id: str, profile: ProfileUpdate):
         
     return query.data[0] # Return the updated user data
 # End of backend/main.py
+
+class AvatarUpdate(BaseModel):
+    avatar_url: str
+
+@app.patch("/profile/avatar/{user_id}")
+async def update_user_avatar(user_id: str, avatar: AvatarUpdate):
+    """
+    Updates a user's 'avatar_url' in the 'users' table.
+    """
+    query = supabase.table("users").update(avatar.dict()).eq("id", user_id).execute()
+
+    if not query.data:
+        raise HTTPException(status_code=400, detail="Failed to update avatar")
+    return query.data[0] # Return the newly updated user row
+
+# ... (at the end of your main.py file)
+
+@app.get("/courses")
+async def get_all_courses():
+    """
+    Gets the complete list of all courses.
+    """
+    query = supabase.table("courses").select("*").execute()
+    
+    if not query.data:
+        raise HTTPException(status_code=404, detail="No courses found")
+        
+    return query.data

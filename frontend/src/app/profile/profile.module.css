@@ -293,6 +293,14 @@
 
 /* --- Profile Header & Avatar --- */
 
+.profileHeader .headerLabel {
+  background: linear-gradient(90deg, #0a4c9c, #007bff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
 /* Container for the "USER CENTRE" label and the avatar */
 .profileHeader {
   display: flex;
@@ -300,6 +308,8 @@
   justify-content: space-between; /* Pushes label and avatar apart */
   gap: 20px;
   flex-wrap: wrap; /* Allows them to stack on small screens */
+
+  
 }
 
 /* The "USER CENTRE" text */
