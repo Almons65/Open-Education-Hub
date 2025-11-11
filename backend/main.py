@@ -53,7 +53,6 @@ def root():
 async def get_user_profile(username: str):
     
     # 1. Get the user's main profile info
-    # This query now ALSO gets the learning_time column
     user_query = supabase.table("users").select("*").eq("username", username).execute()
     
     if not user_query.data:
@@ -64,38 +63,43 @@ async def get_user_profile(username: str):
 
     # 2. Get all other data related to this user in parallel
     
-    # --- THIS QUERY IS NOW DELETED ---
-    # time_query = supabase.table("learning_time")...
-    
     decorations_query = supabase.table("decorations").select("unlocked, equipped").eq("user_id", user_id).execute()
-    favorites_query = supabase.table("favorites") \
-        .select("course_id") \
-        .eq("user_id", user_id) \
-        .order("created_at", desc=False) \
-        .execute()
+    favorites_query = supabase.table("favorites").select("course_id").eq("user_id", user_id).order("created_at", desc=False).execute()
     history_query = supabase.table("view_history").select("course_id").eq("user_id", user_id).order("viewed_at", desc=True).limit(10).execute()
     achievements_query = supabase.table("user_achievements").select("*").eq("user_id", user_id).execute()
-    progress_query = supabase.table("course_progress").select("course_id, completed_lectures").eq("user_id", user_id).execute()
+    
+    # --- THIS IS THE NEW, CORRECT PROGRESS QUERY ---
+    # It queries 'lecture_progress' and joins 'lectures' to get the course_id and lecture_id (id)
+    progress_query = supabase.table("lecture_progress").select("lectures(course_id, id)").eq("user_id", user_id).execute()
     
     # 3. Combine it all into one response
     
-    progress_dict = {p["course_id"]: p["completed_lectures"] for p in progress_query.data}
+    # --- THIS IS THE NEW PROCESSING LOGIC ---
+    progress_dict = {}
+    for item in progress_query.data:
+        # Check if the join was successful and the 'lectures' data exists
+        if item.get("lectures"):
+            course_id = item["lectures"]["course_id"]
+            lecture_id = item["lectures"]["id"]
+            
+            # If this is the first lecture for this course, create an empty list
+            if course_id not in progress_dict:
+                progress_dict[course_id] = []
+                
+            # Add the completed lecture's ID to the list
+            progress_dict[course_id].append(lecture_id)
 
     profile_response = {
         "user": user_data,
-        
-        # It gets 'learning_time' from user_data, with a fallback of 0
         "learningTime": user_data.get("learning_time", 0), 
-        
         "decorations": decorations_query.data[0] if decorations_query.data else {"unlocked": [], "equipped": None},
         "favorites": [f["course_id"] for f in favorites_query.data],
         "history": [h["course_id"] for h in history_query.data],
         "badges": achievements_query.data,
-        "progress": progress_dict
+        "progress": progress_dict # This now has the correct format: {"AAA001": ["lecture_uuid_1", "lecture_uuid_2"]}
     }
     
     return profile_response
-
 
 from pydantic import BaseModel
 
