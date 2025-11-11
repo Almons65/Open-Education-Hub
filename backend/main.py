@@ -53,7 +53,6 @@ def root():
 async def get_user_profile(username: str):
     
     # 1. Get the user's main profile info
-    # This query now ALSO gets the learning_time column
     user_query = supabase.table("users").select("*").eq("username", username).execute()
     
     if not user_query.data:
@@ -64,10 +63,8 @@ async def get_user_profile(username: str):
 
     # 2. Get all other data related to this user in parallel
     
-    # --- THIS QUERY IS NOW DELETED ---
-    # time_query = supabase.table("learning_time")...
-    
     decorations_query = supabase.table("decorations").select("unlocked, equipped").eq("user_id", user_id).execute()
+
     favorites_query = supabase.table("favorites") \
         .select("course_id") \
         .eq("user_id", user_id) \
@@ -92,15 +89,18 @@ async def get_user_profile(username: str):
         # It gets 'learning_time' from user_data, with a fallback of 0
         "learningTime": user_data.get("learning_time", 0),
 
+
         "decorations": decorations_query.data[0] if decorations_query.data else {"unlocked": [], "equipped": None},
         "favorites": [f["course_id"] for f in favorites_query.data],
         "history": [h["course_id"] for h in history_query.data],
         "badges": achievements_query.data,
         "progress": progress_list
+
+   
+
     }
     
     return profile_response
-
 
 from pydantic import BaseModel
 

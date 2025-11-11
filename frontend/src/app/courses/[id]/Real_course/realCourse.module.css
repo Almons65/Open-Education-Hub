@@ -314,3 +314,24 @@
     transform: translate(-50%, -20px);
   }
 }
+
+.starRating {
+  margin-bottom: 15px;
+  display: flex;
+  justify-content: center;
+}
+.starRating span {
+  font-size: 2.5rem;
+  cursor: pointer;
+  padding: 0 5px;
+  transition: transform 0.1s ease;
+}
+.starRating span:hover {
+  transform: scale(1.2);
+}
+.starEmpty {
+  color: #ccc;
+}
+.starFilled {
+  color: #f0c040;
+}
