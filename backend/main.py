@@ -68,7 +68,11 @@ async def get_user_profile(username: str):
     # time_query = supabase.table("learning_time")...
     
     decorations_query = supabase.table("decorations").select("unlocked, equipped").eq("user_id", user_id).execute()
-    favorites_query = supabase.table("favorites").select("course_id").eq("user_id", user_id).execute()
+    favorites_query = supabase.table("favorites") \
+        .select("course_id") \
+        .eq("user_id", user_id) \
+        .order("created_at", desc=False) \
+        .execute()
     history_query = supabase.table("view_history").select("course_id").eq("user_id", user_id).order("viewed_at", desc=True).limit(10).execute()
     achievements_query = supabase.table("user_achievements").select("*").eq("user_id", user_id).execute()
     progress_query = supabase.table("course_progress").select("course_id, completed_lectures").eq("user_id", user_id).execute()
@@ -146,3 +150,39 @@ async def get_all_courses():
         raise HTTPException(status_code=404, detail="No courses found")
         
     return query.data
+
+
+# new
+class FavoriteRequest(BaseModel):
+    course_id: str
+
+@app.post("/profile/favorites/{user_id}")
+async def add_favorite(user_id: str, favorite: FavoriteRequest):
+    """
+    Adds a course to a user's favorites.
+    """
+    data = {
+        "user_id": user_id,
+        "course_id": favorite.course_id,
+    }
+    # Use 'upsert' to prevent errors if the favorite already exists
+    query = supabase.table("favorites").upsert(data).execute()
+
+    if not query.data:
+        raise HTTPException(status_code=400, detail="Failed to add favorite")
+    return query.data
+
+@app.delete("/profile/favorites/{user_id}/{course_id}")
+async def remove_favorite(user_id: str, course_id: str):
+    """
+    Removes a course from a user's favorites.
+    """
+    query = supabase.table("favorites") \
+        .delete() \
+        .eq("user_id", user_id) \
+        .eq("course_id", course_id) \
+        .execute()
+
+    if not query.data:
+        raise HTTPException(status_code=404, detail="Favorite not found or failed to remove")
+    return {"message": "Favorite removed"}

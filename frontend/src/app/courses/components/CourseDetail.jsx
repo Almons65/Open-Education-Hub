@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import PageTransition from "@/app/components/PageTransition";
 import styles from "./courseDetail.module.css"; 
 import Breadcrumb from "@/app/components/Breadcrumb";
+import { supabase } from "@/lib/supabaseClient";
 
 //const CURRENT_USERNAME = "User1"; 
 const CURRENT_USERNAME = "User2";
@@ -58,19 +59,42 @@ export default function CourseDetail({ course }) {
     router.push(`/courses/${course.id}/Real_course`);
   };
 
+  //store currentuser information
+  const [loggedInUser, setLoggedInUser] = useState(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (authUser) {
+        setLoggedInUser(authUser);
+      } else {
+        router.push('/auth'); // ログインしていない場合は認証ページへ
+      }
+    };
+    fetchUser();
+  }, [router]);
+
   // This useEffect hook runs when the 'course' prop changes
   useEffect(() => {
     // Don't run if the course isn't loaded yet
-    if (!course) return;
-    
-    // --- Check if this course is in the user's favorites ---
-    // 1. Get the main favorites object from localStorage
-    const allFavorites = JSON.parse(localStorage.getItem("favorites") || "{}");
-    // 2. Get the personal favorites list for *this* user
-    const userFavorites = allFavorites[CURRENT_USERNAME] || [];
-    // 3. Set the 'isFavorite' state to true if the user's list includes this course ID
-    setIsFavorite(userFavorites.includes(course.id));
-  }, [course]); // Dependency array: re-run this effect if 'course' changes
+    if (!course || !loggedInUser) return;
+
+    const checkFavorite = async () =>{
+      const {data,error} = await supabase
+          .from("favorites")
+          .select("course_id")
+          .eq("user_id", loggedInUser.id)
+          .eq("course_id", course.id)
+          .maybeSingle();
+        if (data) {
+          setIsFavorite(true);
+        } else {
+          setIsFavorite(false);
+        }
+      };
+      checkFavorite();
+  },[course, loggedInUser]);
+
 
   // This useEffect hook manages the smooth accordion animation for the description
   useEffect(() => {
@@ -92,37 +116,44 @@ export default function CourseDetail({ course }) {
   if (!course) return <p>Course not found.</p>;
 
   // This function is called when the "Add/Remove Favorite" button is clicked
-  const toggleFavorite = () => {
-    
-    // --- Update the user-specific "Favorites" list ---
+  const toggleFavorite = async () => {
 
-    // 1. Get the main favorites object from localStorage
-    let allFavorites = JSON.parse(localStorage.getItem("favorites") || "{}");
-    // 2. Fix for old data: If it's an array, reset to an object
-    if (Array.isArray(allFavorites)) { allFavorites = {}; }
-
-    // 3. Get the personal favorites list for *this* user
-    let userFavorites = allFavorites[CURRENT_USERNAME] || [];
+    if (!course || !loggedInUser) {
+      alert("you should be logged in.");
+      return;
+    }
+    let endpoint = `http://localhost:8000/profile/favorites/${loggedInUser.id}`;
+    let method = "POST";
 
     if (isFavorite) {
-      // If it's *already* a favorite, filter it *out* (remove it)
-      userFavorites = userFavorites.filter(id => id !== course.id);
-    } else {
-      // If it's *not* a favorite, add it to the list (if not already present)
-      if (!userFavorites.includes(course.id)) {
-        userFavorites.push(course.id);
-      }
+      endpoint += `/${course.id}`; // URLに course_id を追加
+      method = "DELETE";
     }
 
-    // 4. Put the user's updated list back into the main object
-    allFavorites[CURRENT_USERNAME] = userFavorites;
-    // 5. Save the updated main object back to localStorage
-    localStorage.setItem("favorites", JSON.stringify(allFavorites));
-    
-    // 6. Toggle the 'isFavorite' state in React to update the button's appearance
-    setIsFavorite(!isFavorite);
-    // 7. Dispatch an event to notify other components that favorites have changed
-    window.dispatchEvent(new Event("favoritesUpdated"));
+    try {
+
+      const response = await fetch(endpoint, {
+        method: method,
+        headers: {
+          "Content-Type": "application/json",
+        },
+
+        body: method === "POST" ? JSON.stringify({ course_id: course.id }) : null,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to ${method} favorite`);
+      }
+
+
+      setIsFavorite(!isFavorite);
+
+      window.dispatchEvent(new Event("favoritesUpdated"));
+
+    } catch (error) {
+      console.error("Favorite toggle error:", error);
+      alert("Failed to toggle favorites");
+    }
   };
 
   // This function toggles the 'showDescription' state when the "Show More" button is clicked
