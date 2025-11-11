@@ -3,6 +3,8 @@ from supabase import create_client, Client
 from dotenv import load_dotenv
 import os
 from fastapi.middleware.cors import CORSMiddleware # Import CORS
+import uuid
+from pydantic import BaseModel, EmailStr
 
 # Load environment variables (SUPABASE_URL, SUPABASE_SERVICE_KEY)
 load_dotenv()
@@ -29,10 +31,79 @@ app.add_middleware(
 )
 # ---------------------------------
 
+# ---------------------------------
+# --- 3. 新規ユーザー用Pydanticモデル ---
+# React (AuthPage.jsx) から送信されるJSONの形式を定義
+# ---------------------------------
+class NewUser(BaseModel):
+    id: uuid.UUID  # SupabaseのAuthから取得したID
+    username: str
+    name: str
+    email: EmailStr
+# ---------------------------------
 
 @app.get("/")
 def root():
     return {"message": "FastAPI connected to Supabase"}
+
+# ---------------------------------
+# --- 4. 新しい POST エンドポイント ---
+# サインアップ直後にReactから呼び出される
+# ---------------------------------
+@app.post("/profile")
+async def create_profile(new_user: NewUser):
+    """
+    Supabaseでのサインアップ直後に呼び出される。
+    Supabaseの "users" テーブルと "decorations" テーブルに
+    新しいユーザーのデフォルト行を作成します。
+    """
+
+    # 1. "users" テーブルに基本情報を作成
+    # learning_time: 0 をデフォルト値として挿入
+    user_insert_data = {
+        "id": str(new_user.id),
+        "username": new_user.username,
+        "name": new_user.name,
+        "email": new_user.email,
+        "learning_time": 0,
+        "bio": f"Welcome, {new_user.name}!",
+        # joined と avatar_url はDBのデフォルト値に任せる
+    }
+
+    try:
+        user_query = supabase.table("users").insert(user_insert_data).execute()
+
+        if not user_query.data:
+            raise HTTPException(status_code=500, detail="Failed to create user row in 'users' table")
+
+    except Exception as e:
+        # username または email が既に存在する場合 (Unique制約違反)
+        if "unique constraint" in str(e):
+            raise HTTPException(status_code=409, detail=f"Username or email already exists: {e}")
+        raise HTTPException(status_code=500, detail=f"Error creating user profile: {e}")
+
+    # 2. "decorations" テーブルにデフォルト行を作成
+    # これにより、GET /profile が空のデータを見つけられる
+    decorations_insert_data = {
+        "user_id": str(new_user.id),
+        "unlocked": [],
+        "equipped": None
+    }
+
+    try:
+        decorations_query = supabase.table("decorations").insert(decorations_insert_data).execute()
+
+        if not decorations_query.data:
+            raise HTTPException(status_code=500, detail="Failed to create user row in 'decorations' table")
+
+    except Exception as e:
+        # ここで失敗した場合、"users" にはデータが残ってしまう
+        # （本番環境では "users" 行を削除するロールバック処理が望ましい）
+        raise HTTPException(status_code=500, detail=f"User created, but failed to create decorations: {e}")
+
+    # 3. 成功
+    # 挿入された "users" のデータを返す
+    return user_query.data[0]
 
 
 # @app.get("/profile/{username}")
