@@ -3,6 +3,8 @@ from supabase import create_client, Client
 from dotenv import load_dotenv
 import os
 from fastapi.middleware.cors import CORSMiddleware # Import CORS
+import uuid
+from pydantic import BaseModel, EmailStr
 
 from pydantic import BaseModel
 from typing import Optional
@@ -32,6 +34,16 @@ app.add_middleware(
 )
 # ---------------------------------
 
+# ---------------------------------
+# --- 3. 新規ユーザー用Pydanticモデル ---
+# React (AuthPage.jsx) から送信されるJSONの形式を定義
+# ---------------------------------
+class NewUser(BaseModel):
+    id: uuid.UUID  # SupabaseのAuthから取得したID
+    username: str
+    name: str
+    email: EmailStr
+# ---------------------------------
 
 @app.get("/")
 def root():
