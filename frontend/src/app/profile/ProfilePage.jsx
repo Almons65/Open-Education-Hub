@@ -314,6 +314,34 @@ export default function ProfilePage() {
   }, []); // The empty array `[]` ensures this runs only once
 
 
+  //detect updated favorites
+  useEffect(() => {
+    // プロファイルデータを再フェッチする関数
+    const refreshProfileData = async () => {
+      // currentUsername が無い場合は何もしない
+      if (!currentUsername) return;
+
+      try {
+        const response = await fetch(`http://localhost:8000/profile/${currentUsername}`);
+        if (!response.ok) throw new Error("Profile refresh failed");
+        const data = await response.json();
+
+        // favorites state のみを更新
+        setFavorites(data.favorites || []);
+      } catch (error) {
+        console.error("Failed to refresh favorites:", error);
+      }
+    };
+
+    // "favoritesUpdated" イベントをリッスン
+    window.addEventListener("favoritesUpdated", refreshProfileData);
+
+    // コンポーネントがアンマウント（破棄）される時にリスナーを削除
+    return () => {
+      window.removeEventListener("favoritesUpdated", refreshProfileData);
+    };
+  }, [currentUsername]);
+
   // --- Event Handlers for Editing Profile ---
 
   // Called when "Edit Profile" is clicked
@@ -359,6 +387,8 @@ export default function ProfilePage() {
   // Updates 'formData' state as the user types in an input
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
+
+
   // Called when a new avatar file is selected
   const handleAvatarChange = async (e) => {
     if (!user || !user.id) {
@@ -368,37 +398,50 @@ export default function ProfilePage() {
     const file = e.target.files[0];
     if (!file) return;
 
-    // --- 1. Upload to Cloudinary ---
-    const cloudinaryFormData = new FormData();
-    cloudinaryFormData.append("file", file);
-    cloudinaryFormData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET);
+    // 1.  public/avatars/USER_ID/avatar.png）
+    const fileExt = file.name.split('.').pop();
+    const fileName = `avatar.${fileExt}`;
+    const filePath = `${user.id}/${fileName}`;
 
     try {
-      const cloudinaryRes = await fetch(`https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`, {
-        method: "POST",
-        body: cloudinaryFormData
-      });
+      // --- 1. Upload to Supabase Storage ---
+      const { error: storageError } = await supabase.storage
+          .from('avatars')
+          .upload(filePath, file, {
+            cacheControl: '3600',
+            upsert: true,
+          });
 
-      if (!cloudinaryRes.ok) throw new Error("Cloudinary upload failed.");
+      if (storageError) {
+        throw new Error(`Supabase Storage failed: ${storageError.message}`);
+      }
 
-      const cloudinaryData = await cloudinaryRes.json();
-      const newAvatarUrl = cloudinaryData.secure_url;
+      // --- 2. Get the public URL for the newly uploaded file ---
+      const { data: urlData } = supabase.storage
+          .from('avatars')
+          .getPublicUrl(filePath);
 
-      // --- 2. Save the new URL to our backend ---
+      if (!urlData || !urlData.publicUrl) {
+        throw new Error("Failed to get public URL from Supabase.");
+      }
+
+      const newAvatarUrl = urlData.publicUrl;
+
+      // --- 3. Save the new URL to our backend (FastAPI) ---
       const apiEndpoint = `http://localhost:8000/profile/avatar/${user.id}`;
       const backendRes = await fetch(apiEndpoint, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ avatar_url: newAvatarUrl })
+        body: JSON.stringify({ avatar_url: newAvatarUrl }),
       });
 
       if (!backendRes.ok) throw new Error("Failed to save avatar URL to backend.");
 
       const updatedUser = await backendRes.json();
 
-      // --- 3. Update UI ---
+      // --- 4. Update UI ---
       setAvatar(newAvatarUrl); // Update the <img> src
       setUser(updatedUser); // Update the user state
 
@@ -407,6 +450,7 @@ export default function ProfilePage() {
       alert("Error changing avatar. Please try again.");
     }
   };
+
   // --- Decoration Handlers ---
   // Helper to get the CSS class for a decoration ID
   const getDecorationClass = (decorationId) => {
@@ -736,6 +780,8 @@ export default function ProfilePage() {
                 {favorites.length > 0 ? (
                   favorites.map(id => {
                     const course = courses.find(c => c.id === id);
+                    if (!course) return null;
+
                     const progress = calculateProgress(id);
                     return (
                       <a
@@ -743,16 +789,25 @@ export default function ProfilePage() {
                         className={styles.dropItem}
                         onClick={() => router.push(`/courses/${id}`)}
                       >
-                        <div>{course ? course.name : id}</div>
-                        {/* Show progress bar for each favorite item */}
-                        <div className={styles.progressWrapper}>
-                          <div className={styles.progressContainer}>
-                            <div
-                              className={styles.progressBar}
-                              style={{ width: `${Math.round(progress)}%` }}
-                            />
+                        <div className={styles.dropItemVideo}>
+                          <video
+                            src={course.preview_video}
+                            muted
+                            playsInline
+                            className={styles.dropItemVideoPlayer}
+                          />
+                        </div>
+                        <div className={styles.dropItemContent}>
+                          <div className={styles.dropItemName}>{course.name}</div>
+                          <div className={styles.progressWrapper}>
+                            <div className={styles.progressContainer}>
+                              <div
+                                  className={styles.progressBar}
+                                  style={{ width: `${Math.round(progress)}%` }}
+                              />
+                            </div>
+                            <span className={styles.percentLabel}>{Math.round(progress)}%</span>
                           </div>
-                          <span className={styles.percentLabel}>{Math.round(progress)}%</span>
                         </div>
                       </a>
                     );
