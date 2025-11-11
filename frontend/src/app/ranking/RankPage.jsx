@@ -144,8 +144,9 @@ export default function RankingPage() {
 
   const handleViewProfile = (e, username) => {
     if (e) e.preventDefault();
-    localStorage.setItem("viewing_profile", username);
-    router.push('/profile');
+    // This now sends the user to the correct URL,
+    // which your ProfilePage.jsx knows how to read.
+    router.push(`/profile?view=${username}`);
   };
 
   // --- Render the component's JSX (HTML) ---
