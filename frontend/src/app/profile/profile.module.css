@@ -41,7 +41,7 @@
   border-radius: 15px;
   border-right: 2px solid rgba(0, 0, 0, 0.1); /* Light border */
   box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05); /* Subtle shadow for depth */
-  position: relative;
+  position: fixed;
   z-index: 1; /* Stacks above the background */
 }
 

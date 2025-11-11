@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import PageTransition from "@/app/components/PageTransition";
 import styles from "./realCourse.module.css";
 import Breadcrumb from "@/app/components/Breadcrumb";
@@ -14,6 +14,7 @@ const CURRENT_USERNAME = "User2";
 
 export default function RealCoursePage() {
   const params = useParams();
+  const router = useRouter();
   const courseId = params.id;
 
   const [currentUser] = useState(CURRENT_USERNAME);
@@ -36,7 +37,8 @@ export default function RealCoursePage() {
   const [courseProgress, setCourseProgress] = useState({});
   const [showFeedbackAlert, setShowFeedbackAlert] = useState(false);
   const [isChangingLecture, setIsChangingLecture] = useState(false);
-
+  const [loggedInUser, setLoggedInUser] = useState(null);
+  const [completedLectures, setCompletedLectures] = useState(new Set());
 
   // 3. SupabaseからデータをフェッチするuseEffect
   useEffect(() => {
@@ -78,6 +80,30 @@ export default function RealCoursePage() {
 
   // --- ▲ データ取得ロジックの変更 ▲ ---
 
+  useEffect(() => {
+    const fetchUserAndProgress = async () => {
+      // 1. ユーザー情報を取得
+      const { data: { user } } = await supabase.auth.getUser();
+      setLoggedInUser(user);
+
+      if (user) {
+        // 2. ユーザーの進捗（完了済み講義IDのリスト）を取得
+        // (これは ProfilePage と同じロジックです)
+        const { data: progressData, error } = await supabase
+            .from("lecture_progress") // ★ lecture_progress テーブルから
+            .select("lecture_id")
+            .eq("user_id", user.id);
+
+        if (progressData) {
+          // 取得したIDの配列を Set にして state に保存
+          setCompletedLectures(new Set(progressData.map(p => p.lecture_id)));
+        }
+      } else {
+        router.push('/auth'); // ログインしていない場合は認証ページへ
+      }
+    };
+    fetchUserAndProgress();
+  }, [router]);
 
   // ... (localStorageからprogressを読み込むuseEffect はそのまま) ...
   useEffect(() => {
@@ -176,48 +202,86 @@ export default function RealCoursePage() {
   };
 
 
-  // 'markLectureAsComplete' 内の 'courses.find' を削除
-  const markLectureAsComplete = () => {
-    handlePauseOrEnd();
-    if (!currentLecture || !course) return;
 
-    // DBスキーマの `lecture_number` または `id` を使います
-    // ここでは `id` (UUID) を使うと仮定します
-    const lectureIdToMark = currentLecture.id;
+  const markLectureAsComplete = async () => {
+    handlePauseOrEnd(); // ビデオの再生時間を保存（これは変更なし）
 
-    let courseProgressData = JSON.parse(localStorage.getItem("courseProgress")) || {};
+    // ログイン中のユーザーか、現在の講義がなければ何もしない
+    if (!loggedInUser || !currentLecture) return;
 
-    if (typeof courseProgressData[currentUser] !== "object") {
-      courseProgressData[currentUser] = {};
-    }
-    if (typeof courseProgressData[currentUser][courseId] !== "object") {
-      courseProgressData[currentUser][courseId] = { completedLectures: [] };
-    }
-    if (!Array.isArray(courseProgressData[currentUser][courseId].completedLectures)) {
-      courseProgressData[currentUser][courseId].completedLectures = [];
+    const lectureIdToMark = currentLecture.id; // DBの 'id' (UUID)
+
+    // ★ 既に完了済みリスト (Set) に含まれているかチェック
+    if (completedLectures.has(lectureIdToMark)) {
+      console.log(`Lecture ${lectureIdToMark} is already marked as complete.`);
+      return; // 既に完了しているので何もしない
     }
 
-    // 完了したレクチャーのID (UUID) を保存
-    if (!courseProgressData[currentUser][courseId].completedLectures.includes(lectureIdToMark)) {
-      courseProgressData[currentUser][courseId].completedLectures.push(lectureIdToMark);
-      console.log(`Marked Lecture ${lectureIdToMark} for Course ${courseId} as complete for ${CURRENT_USERNAME}.`);
+    try {
+      // ★ FastAPI の /progress/complete エンドポイントを呼び出す
+      const endpoint = `http://localhost:8000/progress/complete/${loggedInUser.id}`;
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lecture_id: lectureIdToMark }), // ★ 'id' を 'lecture_id' として送信
+      });
+
+      if (!response.ok) throw new Error("Failed to save progress");
+
+      // ★ 成功したら、ローカルの 'completedLectures' Set にもIDを追加
+      setCompletedLectures(prevSet => new Set(prevSet).add(lectureIdToMark));
+
+      console.log(`Marked Lecture ${lectureIdToMark} as complete in DB.`);
+
+      // (オプション) バッジ獲得のロジックは、ProfilePage.jsx 側で計算する方が
+      // データが正確になるため、ここでのバッジ獲得ロジックは削除します。
+
+    } catch (error) {
+      console.error("Progress save error:", error);
     }
-
-    // 'course.badge' 'course.totalLectures' を直接参照する
-    if (course) {
-      const totalLectures = course.total_lectures; // DBのカラム名に合わせる
-      const completedCount = courseProgressData[currentUser][courseId].completedLectures.length;
-      const progress = (completedCount / totalLectures) * 100;
-
-      if (progress >= 100 && !courseProgressData[currentUser][courseId].badgeEarned) {
-        courseProgressData[currentUser][courseId].badgeEarned = course.badge;
-        console.log(`Congratulations ${currentUser}! You earned the badge for ${course.name}!`);
-      }
-    }
-
-    localStorage.setItem("courseProgress", JSON.stringify(courseProgressData));
-    setCourseProgress(courseProgressData);
   };
+  // 'markLectureAsComplete' 内の 'courses.find' を削除
+  // const markLectureAsComplete = () => {
+  //   handlePauseOrEnd();
+  //   if (!currentLecture || !course) return;
+  //
+  //   // DBスキーマの `lecture_number` または `id` を使います
+  //   // ここでは `id` (UUID) を使うと仮定します
+  //   const lectureIdToMark = currentLecture.id;
+  //
+  //   let courseProgressData = JSON.parse(localStorage.getItem("courseProgress")) || {};
+  //
+  //   if (typeof courseProgressData[currentUser] !== "object") {
+  //     courseProgressData[currentUser] = {};
+  //   }
+  //   if (typeof courseProgressData[currentUser][courseId] !== "object") {
+  //     courseProgressData[currentUser][courseId] = { completedLectures: [] };
+  //   }
+  //   if (!Array.isArray(courseProgressData[currentUser][courseId].completedLectures)) {
+  //     courseProgressData[currentUser][courseId].completedLectures = [];
+  //   }
+  //
+  //   // 完了したレクチャーのID (UUID) を保存
+  //   if (!courseProgressData[currentUser][courseId].completedLectures.includes(lectureIdToMark)) {
+  //     courseProgressData[currentUser][courseId].completedLectures.push(lectureIdToMark);
+  //     console.log(`Marked Lecture ${lectureIdToMark} for Course ${courseId} as complete for ${CURRENT_USERNAME}.`);
+  //   }
+  //
+  //   // 'course.badge' 'course.totalLectures' を直接参照する
+  //   if (course) {
+  //     const totalLectures = course.total_lectures; // DBのカラム名に合わせる
+  //     const completedCount = courseProgressData[currentUser][courseId].completedLectures.length;
+  //     const progress = (completedCount / totalLectures) * 100;
+  //
+  //     if (progress >= 100 && !courseProgressData[currentUser][courseId].badgeEarned) {
+  //       courseProgressData[currentUser][courseId].badgeEarned = course.badge;
+  //       console.log(`Congratulations ${currentUser}! You earned the badge for ${course.name}!`);
+  //     }
+  //   }
+  //
+  //   localStorage.setItem("courseProgress", JSON.stringify(courseProgressData));
+  //   setCourseProgress(courseProgressData);
+  // };
 
   // ... (handleFeedbackToggle, handleFeedbackChange, handleSendFeedback はそのまま) ...
   const handleFeedbackToggle = () => {

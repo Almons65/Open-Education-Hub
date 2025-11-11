@@ -148,6 +148,23 @@ export default function ProfilePage() {
 
   const [courses, setCourses] = useState([]);
 
+  const [lectures, setLectures] = useState([]);
+  const [profileProgress, setProfileProgress] = useState({});
+
+  useEffect(() => {
+    const fetchAllLectures = async () => {
+      try {
+        const response = await fetch('http://localhost:8000/lectures');
+        if (!response.ok) throw new Error("Failed to fetch lectures");
+        const data = await response.json();
+        setLectures(data);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+    fetchAllLectures();
+  }, []);
+
   useEffect(() => {
       const fetchCourses = async () => {
         try {
@@ -217,7 +234,7 @@ export default function ProfilePage() {
 
   // EFFECT 1: This effect runs ONCE on page load to determine *which user to display*.
   // A new state to hold the progress dictionary from your API
-  const [profileProgress, setProfileProgress] = useState({});
+
 
   // EFFECT 1: This effect runs to determine *which user to display*.
   useEffect(() => {
@@ -271,7 +288,7 @@ export default function ProfilePage() {
         setHistory(data.history || []);
         setBadges(data.badges || []);
         setLearningTime(data.learningTime || 0);
-        setProfileProgress(data.progress || {}); // Use the new progress state
+        setProfileProgress(data.progress || []); // Use the new progress state
 
         setUnlockedDecorations(data.decorations?.unlocked || []);
         setEquippedDecoration(data.decorations?.equipped || null);
@@ -290,15 +307,25 @@ export default function ProfilePage() {
 
   // Calculates progress for a course, pulling from the *new* progress state
   const calculateProgress = (courseId) => {
-    const course = courses.find((course) => course.id === courseId);
-    const totalLectures = course ? course.totalLectures : 0;
-    if (totalLectures === 0) return 0; // Prevent divide by zero
+    // 1. 全講義 (lectures) から、このコース (courseId) に属する講義だけをフィルタリング
+    const lecturesInThisCourse = lectures.filter(l => l.course_id === courseId);
 
-    // Get this user's completed lectures from the simple progress object
-    const completedLectures = profileProgress[courseId] || [];
+    // 2. このコースの全体の講義数を取得
+    const totalLectures = lecturesInThisCourse.length;
+    if (totalLectures === 0) return 0; // 0除算を防止
 
-    const progress = (completedLectures.length / totalLectures) * 100;
-    return progress;
+    // 3. 完了した講義 (profileProgress) のうち、このコースの講義が何件あるかカウント
+    let completedCount = 0;
+    const completedLectureIds = new Set(profileProgress); // 高速検索のために Set にする
+
+    for (const lecture of lecturesInThisCourse) {
+      if (completedLectureIds.has(lecture.id)) {
+        completedCount++;
+      }
+    }
+
+    // 4. (完了数 / 全体数) * 100
+    return (completedCount / totalLectures) * 100;
   };
 
   // EFFECT 4: This effect runs ONCE on mount to create background particles
@@ -339,6 +366,28 @@ export default function ProfilePage() {
     // コンポーネントがアンマウント（破棄）される時にリスナーを削除
     return () => {
       window.removeEventListener("favoritesUpdated", refreshProfileData);
+    };
+  }, [currentUsername]);
+
+
+  useEffect(() => {
+    const refreshHistoryData = async () => {
+      if (!currentUsername) return;
+      try {
+        const response = await fetch(`http://localhost:8000/profile/${currentUsername}`);
+        if (!response.ok) throw new Error("Profile refresh failed");
+        const data = await response.json();
+
+        // history state のみを更新
+        setHistory(data.history || []);
+      } catch (error) {
+        console.error("Failed to refresh history:", error);
+      }
+    };
+
+    window.addEventListener("historyUpdated", refreshHistoryData);
+    return () => {
+      window.removeEventListener("historyUpdated", refreshHistoryData);
     };
   }, [currentUsername]);
 
@@ -825,32 +874,45 @@ export default function ProfilePage() {
               >
                 {/* If there is history, map over it */}
                 {history.length > 0 ? (
-                  history.map(id => {
-                    const course = courses.find(c => c.id === id);
-                    const progress = calculateProgress(id);
-                    return (
-                      <a
-                        key={id}
-                        className={styles.dropItem}
-                        onClick={() => router.push(`/courses/${id}`)}
-                      >
-                        <div>{course ? course.name : id}</div>
-                        {/* Show progress bar for each history item */}
-                        <div className={styles.progressWrapper}>
-                          <div className={styles.progressContainer}>
-                            <div
-                              className={styles.progressBar}
-                              style={{ width: `${Math.round(progress)}%` }}
-                            />
-                          </div>
-                          <span className={styles.percentLabel}>{Math.round(progress)}%</span>
-                        </div>
-                      </a>
-                    );
-                  })
+                    history.map(id => {
+                      const course = courses.find(c => c.id === id);
+                      if (!course) return null; // コース情報がまだなければ表示しない
+
+                      const progress = calculateProgress(id);
+                      return (
+                          <a
+                              key={id}
+                              className={styles.dropItem}
+                              onClick={() => router.push(`/courses/${id}`)}
+                          >
+                            {/* 動画サムネイル */}
+                            <div className={styles.dropItemVideo}>
+                              <video
+                                  src={course.preview_video}
+                                  muted
+                                  playsInline
+                                  className={styles.dropItemVideoPlayer}
+                              />
+                            </div>
+                            {/* テキストとプログレスバー */}
+                            <div className={styles.dropItemContent}>
+                              <div className={styles.dropItemName}>{course.name}</div>
+                              <div className={styles.progressWrapper}>
+                                <div className={styles.progressContainer}>
+                                  <div
+                                      className={styles.progressBar}
+                                      style={{ width: `${Math.round(progress)}%` }}
+                                  />
+                                </div>
+                                <span className={styles.percentLabel}>{Math.round(progress)}%</span>
+                              </div>
+                            </div>
+                          </a>
+                      );
+                    })
                 ) : (
-                  // Show a message if no history
-                  <span className={styles.dropItem}>No recent courses</span>
+                    // Show a message if no history
+                    <span className={styles.dropItem}>No recent courses</span>
                 )}
               </Dropdown>
             </div>
