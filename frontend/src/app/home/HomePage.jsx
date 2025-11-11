@@ -4,9 +4,10 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import PageTransition from "../components/PageTransition";
 import styles from "./home.module.css";
+import { supabase } from "@/lib/supabaseClient";
 
 //const CURRENT_USERNAME = "User1"; 
-const CURRENT_USERNAME = "User2";
+//const CURRENT_USERNAME = "User2";
 //const CURRENT_USERNAME = "User3";
 //const CURRENT_USERNAME = "User4";
 
@@ -40,70 +41,180 @@ export default function HomePage() {
     Calculus: false,
   });
 
+
+
   // Hardcoded array of available courses
-  const courses = [
-    { id: "AAA001", name: "Introduction to Programming", difficulty: "Beginner", subjects: ["Python"], totalLectures: 3, badge: "/badges/ITP_badge.png" },
-    { id: "AAA002", name: "Calculus 1", difficulty: "Intermediate", subjects: ["Calculus"], totalLectures: 3, badge: "/badges/Cal_Badge.png" },
-    { id: "BAA001", name: "Electromagnetic Induction", difficulty: "Intermediate", subjects: ["Physics"], totalLectures: 3, badge: "/badges/Electromag_Badge.png" },
-    { id: "BBA001", name: "Introduction to Deep Learning", difficulty: "Advanced", subjects: ["Ai"], totalLectures: 3, badge: "/badges/ITDL_Badge.png" },
-    { id: "BBA002", name: "Ecology", difficulty: "Intermediate", subjects: ["Biology"], totalLectures: 3, badge: "/badges/Eco_Badge.png" },
-    { id: "CAA100", name: "Electrodynamics", difficulty: "Advanced", subjects: ["Physics"], totalLectures: 3, badge: "/badges/ElectroDyn_Badge.png" },
-  ];
+  // const courses = [
+  //   { id: "AAA001", name: "Introduction to Programming", difficulty: "Beginner", subjects: ["Python"], totalLectures: 3, badge: "/badges/ITP_badge.png" },
+  //   { id: "AAA002", name: "Calculus 1", difficulty: "Intermediate", subjects: ["Calculus"], totalLectures: 3, badge: "/badges/Cal_Badge.png" },
+  //   { id: "BAA001", name: "Electromagnetic Induction", difficulty: "Intermediate", subjects: ["Physics"], totalLectures: 3, badge: "/badges/Electromag_Badge.png" },
+  //   { id: "BBA001", name: "Introduction to Deep Learning", difficulty: "Advanced", subjects: ["Ai"], totalLectures: 3, badge: "/badges/ITDL_Badge.png" },
+  //   { id: "BBA002", name: "Ecology", difficulty: "Intermediate", subjects: ["Biology"], totalLectures: 3, badge: "/badges/Eco_Badge.png" },
+  //   { id: "CAA100", name: "Electrodynamics", difficulty: "Advanced", subjects: ["Physics"], totalLectures: 3, badge: "/badges/ElectroDyn_Badge.png" },
+  // ];
+
 
   // State to hold the progress for *only the current user*
   // e.g., { "AAA001": { completedLectures: [1, 2] }, "AAA002": ... }
-  const [courseProgress, setCourseProgress] = useState({});
+
+  // const [courseProgress, setCourseProgress] = useState({});
 
   // This useEffect runs once when the component first mounts
-  useEffect(() => {
-    // Get the *entire* progress object from localStorage (for all users)
-    const allProgress = JSON.parse(localStorage.getItem("courseProgress")) || {};
-    // Find *this specific user's* progress within that object
-    const userProgress = allProgress[CURRENT_USERNAME] || {};
-    // Set the state with only this user's progress
-    setCourseProgress(userProgress);
-  }, []); // The empty array `[]` ensures this runs only once on mount
+  // useEffect(() => {
+  //   // Get the *entire* progress object from localStorage (for all users)
+  //   const allProgress = JSON.parse(localStorage.getItem("courseProgress")) || {};
+  //   // Find *this specific user's* progress within that object
+  //   const userProgress = allProgress[CURRENT_USERNAME] || {};
+  //   // Set the state with only this user's progress
+  //   setCourseProgress(userProgress);
+  // }, []); // The empty array `[]` ensures this runs only once on mount
+  //
+  // // This useEffect sets up listeners to keep progress in sync across tabs
+  // useEffect(() => {
+  //   // This function runs when localStorage changes or the tab is re-focused
+  //   const handleStorageChange = () => {
+  //     // Re-fetch the entire progress object
+  //     const allProgress = JSON.parse(localStorage.getItem("courseProgress")) || {};
+  //     // Get *this user's* specific progress
+  //     const userProgress = allProgress[CURRENT_USERNAME] || {};
+  //     // Update the state
+  //     setCourseProgress(userProgress);
+  //   };
+  //
+  //   // Listen for changes made in other browser tabs
+  //   window.addEventListener('storage', handleStorageChange);
+  //   // Also update when the user clicks back to this tab
+  //   window.addEventListener('focus', handleStorageChange);
+  //
+  //   // This is the "cleanup function" that runs when the component unmounts
+  //   return () => {
+  //     // Remove the listeners to prevent memory leaks
+  //     window.removeEventListener('storage', handleStorageChange);
+  //     window.removeEventListener('focus', handleStorageChange);
+  //   };
+  // }, []); // The empty array `[]` ensures this runs only once
 
-  // This useEffect sets up listeners to keep progress in sync across tabs
+  const [courses, setCourses] = useState([]);
+  const [lectures, setLectures] = useState([]);
+  const [profileProgress, setProfileProgress] = useState([]);
+  const [loggedInUser, setLoggedInUser] = useState(null);
+
+
   useEffect(() => {
-    // This function runs when localStorage changes or the tab is re-focused
-    const handleStorageChange = () => {
-      // Re-fetch the entire progress object
-      const allProgress = JSON.parse(localStorage.getItem("courseProgress")) || {};
-      // Get *this user's* specific progress
-      const userProgress = allProgress[CURRENT_USERNAME] || {};
-      // Update the state
-      setCourseProgress(userProgress);
+    const fetchUser = async () => {
+      // 1. Supabaseセッションから認証ユーザーを取得
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+
+      if (authError || !authUser) {
+        router.push('/auth'); // ログインしていなければAuthページへ
+        return;
+      }
+
+      // 2. 'users' テーブルから本物のプロフィール（username）を取得
+      const { data: profileData, error: profileError } = await supabase
+          .from('users')
+          .select('username')
+          .eq('id', authUser.id)
+          .single();
+
+      if (profileError || !profileData) {
+        console.error("HomePage: CRITICAL: Could not find user profile for ID:", authUser.id, profileError);
+        router.push('/auth'); // プロファイルがなければAuthページへ
+        return;
+      }
+
+      // 3. 認証情報とプロフィール情報を結合
+      const completeUser = {
+        ...authUser,
+        profile: profileData
+      };
+      setLoggedInUser(completeUser);
+    };
+    fetchUser();
+  }, [router]);
+
+  useEffect(() => {
+    // 1. 全コースを取得
+    const fetchCourses = async () => {
+      try {
+        const response = await fetch('http://localhost:8000/courses');
+        if (response.ok) setCourses(await response.json());
+      } catch (error) { console.error("Failed to fetch courses:", error); }
     };
 
-    // Listen for changes made in other browser tabs
-    window.addEventListener('storage', handleStorageChange);
-    // Also update when the user clicks back to this tab
-    window.addEventListener('focus', handleStorageChange); 
-
-    // This is the "cleanup function" that runs when the component unmounts
-    return () => {
-      // Remove the listeners to prevent memory leaks
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('focus', handleStorageChange);
+    // 2. 全レクチャーを取得
+    const fetchAllLectures = async () => {
+      try {
+        const response = await fetch('http://localhost:8000/lectures');
+        if (response.ok) setLectures(await response.json());
+      } catch (error) { console.error("Failed to fetch lectures:", error); }
     };
-  }, []); // The empty array `[]` ensures this runs only once
 
-  // A function to calculate the completion percentage for a single course
+    fetchCourses();
+    fetchAllLectures();
+  }, []); // 空の配列で、マウント時に1回だけ実行
+
+  // ユーザーの進捗を取得する useEffect
+  useEffect(() => {
+    // ★ ログインユーザーの情報が読み込まれるまで待つ
+    if (!loggedInUser) return;
+
+    const fetchProfileData = async () => {
+      try {
+        // ★ 本物のユーザー名 (loggedInUser.profile.username) を使う
+        const username = loggedInUser.profile.username;
+        const response = await fetch(`http://localhost:8000/profile/${username}`);
+
+        if (!response.ok) throw new Error(`Profile not found: ${username}`);
+        const data = await response.json();
+        setProfileProgress(data.progress || []); // 完了済み lecture_id の配列
+      } catch (error) {
+        console.error("Failed to fetch profile progress:", error);
+      }
+    };
+    fetchProfileData();
+  }, [loggedInUser]);
+
+
   const calculateProgress = (courseId) => {
-    // Find the course details (like totalLectures)
-    const course = courses.find((course) => course.id === courseId);
-    const totalLectures = course ? course.totalLectures : 0;
-    // Prevent division by zero if course data is missing
-    if (totalLectures === 0) return 0;
+    // 1. 全講義 (lectures state) から、このコースの講義をフィルタリング
+    const lecturesInThisCourse = lectures.filter(l => l.course_id === courseId);
 
-    // Get the list of completed lectures for this course *from the state*
-    const completedLectures = courseProgress[courseId]?.completedLectures || [];
+    // 2. このコースの全体の講義数を取得
+    const totalLectures = lecturesInThisCourse.length;
+    if (totalLectures === 0) return 0; // 0除算を防止
 
-    // Calculate the percentage
-    const progress = (completedLectures.length / totalLectures) * 100;
-    return progress;
+    // 3. 完了した講義 (profileProgress state) のうち、このコースの講義が何件あるかカウント
+    let completedCount = 0;
+    const completedLectureIds = new Set(profileProgress); // APIから取得した進捗配列
+
+    for (const lecture of lecturesInThisCourse) {
+      // 4. 'lecture.id' が完了済み Set に含まれているかチェック
+      // (lectures テーブルの主キーが 'id' のため)
+      if (completedLectureIds.has(lecture.id)) {
+        completedCount++;
+      }
+    }
+
+    // 5. (完了数 / 全体数) * 100
+    return (completedCount / totalLectures) * 100;
   };
+
+  // // A function to calculate the completion percentage for a single course
+  // const calculateProgress = (courseId) => {
+  //   // Find the course details (like totalLectures)
+  //   const course = courses.find((course) => course.id === courseId);
+  //   const totalLectures = course ? course.totalLectures : 0;
+  //   // Prevent division by zero if course data is missing
+  //   if (totalLectures === 0) return 0;
+  //
+  //   // Get the list of completed lectures for this course *from the state*
+  //   const completedLectures = courseProgress[courseId]?.completedLectures || [];
+  //
+  //   // Calculate the percentage
+  //   const progress = (completedLectures.length / totalLectures) * 100;
+  //   return progress;
+  // };
 
   // This useEffect runs once on mount to create the animated background particles
   useEffect(() => {
