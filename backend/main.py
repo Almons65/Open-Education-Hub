@@ -9,13 +9,12 @@ from pydantic import BaseModel, EmailStr
 from pydantic import BaseModel
 from typing import Optional
 
-# Load environment variables (SUPABASE_URL, SUPABASE_SERVICE_KEY)
-load_dotenv()
+load_dotenv() # Load environment variables (SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
 
-# Make sure you are using the SERVICE_KEY on the backend
+# Make sure we are using the SERVICE_KEY on the backend
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
 app = FastAPI()
@@ -32,9 +31,6 @@ app.add_middleware(
     allow_methods=["*"], # Allows all methods
     allow_headers=["*"], # Allows all headers
 )
-# ---------------------------------
-
-# ---------------------------------
 # --- 3. 新規ユーザー用Pydanticモデル ---
 # React (AuthPage.jsx) から送信されるJSONの形式を定義
 # ---------------------------------
