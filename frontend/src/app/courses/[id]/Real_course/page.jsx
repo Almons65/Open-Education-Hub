@@ -1,111 +1,133 @@
 "use client";
 
+// Import React hooks for state, side effects, and refs
 import { useState, useEffect, useRef } from "react";
+// Import Next.js hooks for navigation and accessing URL parameters
 import { useParams, useRouter } from "next/navigation";
+// Import custom components
 import PageTransition from "@/app/components/PageTransition";
-import styles from "./realCourse.module.css";
 import Breadcrumb from "@/app/components/Breadcrumb";
-import { supabase } from "@/lib/supabaseClient"; // Supabaseクライアントをインポート
+// Import the Supabase client for database interactions
+import { supabase } from "@/lib/supabaseClient";
+import styles from "./realCourse.module.css"; // Import CSS modules for styling
 
+// --- DEBUGGING CONSTANT ---
+// This appears to be for testing different user scenarios.
 // const CURRENT_USERNAME = "User1";
 const CURRENT_USERNAME = "User2";
 //const CURRENT_USERNAME = "User3";
 //const CURRENT_USERNAME = "User4";
+// --- END DEBUGGING ---
 
 export default function RealCoursePage() {
+  // Get URL parameters (e.g., the course ID)
   const params = useParams();
+  // Get the router object for navigation
   const router = useRouter();
+  // Extract the course ID from the URL parameters
   const courseId = params.id;
 
+  // State for the (currently unused) debug username
   const [currentUser] = useState(CURRENT_USERNAME);
-  const isPlayingRef = useRef(false);
-  const sessionStartTimeRef = useRef(null);
 
-  // --- ▼ データ取得ロジックの変更 ▼ ---
+  // Refs to track video playback state and timing without causing re-renders
+  const isPlayingRef = useRef(false); // Is the video currently playing?
+  const sessionStartTimeRef = useRef(null); // When did the current play session start (in ms)?
 
-  // 1. ハードコードされた 'courses' 配列をすべて削除します。
+  // --- Data Fetching State ---
+  const [course, setCourse] = useState(null); // Holds the entire course object (info + lectures)
+  const [currentLecture, setCurrentLecture] = useState(null); // Holds the currently selected lecture object
+  const [isLoading, setIsLoading] = useState(true); // Tracks loading state for data fetching
 
-  // 2. course と currentLecture のための state を初期値 null で定義
-  const [course, setCourse] = useState(null);
-  const [currentLecture, setCurrentLecture] = useState(null);
-  const [isLoading, setIsLoading] = useState(true); // ローディング状態を追加
+  // --- UI & Feedback State ---
+  const [isFeedbackActive, setIsFeedbackActive] = useState(false); // Is the feedback panel open?
+  const [feedbackText, setFeedbackText] = useState(""); // Text inside the feedback textarea
+  const [feedbackRating, setFeedbackRating] = useState(0); // Star rating (1-5)
+  const [showFeedbackAlert, setShowFeedbackAlert] = useState(false); // Show "Feedback Submitted!" alert
+  const [isChangingLecture, setIsChangingLecture] = useState(false); // Triggers fade effect when lecture changes
 
-  // ... (他の state はそのまま) ...
-  const [isFeedbackActive, setIsFeedbackActive] = useState(false);
-  const [feedbackText, setFeedbackText] = useState("");
-  const [feedbackRating, setFeedbackRating] = useState(0);
-  const [courseProgress, setCourseProgress] = useState({});
-  const [showFeedbackAlert, setShowFeedbackAlert] = useState(false);
-  const [isChangingLecture, setIsChangingLecture] = useState(false);
-  const [loggedInUser, setLoggedInUser] = useState(null);
-  const [completedLectures, setCompletedLectures] = useState(new Set());
+  // --- User & Progress State ---
+  const [loggedInUser, setLoggedInUser] = useState(null); // Holds the authenticated user object from Supabase
+  const [completedLectures, setCompletedLectures] = useState(new Set()); // A Set of completed lecture IDs (UUIDs)
+  const [courseProgress, setCourseProgress] = useState({}); // (Legacy?) Holds progress data from localStorage
 
-  // 3. SupabaseからデータをフェッチするuseEffect
+  /**
+   * Main data fetching effect.
+   * Runs when the component mounts or when 'courseId' changes.
+   * Fetches the specific course and its associated lectures from Supabase.
+   */
   useEffect(() => {
-    if (!courseId) return;
+    if (!courseId) return; // Don't run if there's no courseId
 
     const fetchCourseData = async () => {
-      setIsLoading(true); // データ取得開始
+      setIsLoading(true); // Start loading
 
+      // Fetch from the 'courses' table
       const { data, error } = await supabase
-          .from("courses") // 'courses' テーブルから
+          .from("courses")
           .select(`
           *,
           lectures (
             *
           )
-        `) // 'lectures' テーブルの情報も結合して取得
-          .eq("id", courseId)
-          .single(); // 1件だけ取得
+        `) // Select all course columns AND all columns from the related 'lectures' table
+          .eq("id", courseId) // Where the course 'id' matches the one from the URL
+          .single(); // Expect only one result
 
       if (error) {
         console.error("Error fetching course data:", error);
         setCourse(null);
       } else {
-        // 取得成功
-        // レクチャーを lecture_number でソートする
+        // If data is fetched successfully
+        // Sort the lectures by their 'lecture_number'
         if (data.lectures) {
           data.lectures.sort((a, b) => a.lecture_number - b.lecture_number);
         }
 
-        setCourse(data); // 取得したデータを course state にセット
-        // 最初のレクチャーを currentLecture state にセット
+        setCourse(data); // Set the course state
+        // Set the current lecture to the first one in the sorted list
         setCurrentLecture(data.lectures?.[0] || null);
       }
-      setIsLoading(false); // データ取得完了
+      setIsLoading(false); // Stop loading
     };
 
     fetchCourseData();
-  }, [courseId]); // courseId が変わった時だけ実行
+  }, [courseId]); // Dependency: re-run if courseId changes
 
-  // --- ▲ データ取得ロジックの変更 ▲ ---
-
+  /**
+   * User fetching effect.
+   * Runs on mount to get the current user and their progress.
+   */
   useEffect(() => {
     const fetchUserAndProgress = async () => {
-      // 1. ユーザー情報を取得
+      // 1. Get the current user from Supabase auth
       const { data: { user } } = await supabase.auth.getUser();
       setLoggedInUser(user);
 
       if (user) {
-        // 2. ユーザーの進捗（完了済み講義IDのリスト）を取得
-        // (これは ProfilePage と同じロジックです)
+        // 2. If user is logged in, fetch their progress
         const { data: progressData, error } = await supabase
-            .from("lecture_progress") // ★ lecture_progress テーブルから
-            .select("lecture_id")
-            .eq("user_id", user.id);
+            .from("lecture_progress") // from the 'lecture_progress' junction table
+            .select("lecture_id") // select only the lecture IDs
+            .eq("user_id", user.id); // where the 'user_id' matches
 
         if (progressData) {
-          // 取得したIDの配列を Set にして state に保存
+          // Convert the array of objects [{lecture_id: 1}, {lecture_id: 2}]
+          // into a Set for efficient lookups: Set(1, 2)
           setCompletedLectures(new Set(progressData.map(p => p.lecture_id)));
         }
       } else {
-        router.push('/auth'); // ログインしていない場合は認証ページへ
+        // If no user, redirect to the login page
+        router.push('/auth');
       }
     };
     fetchUserAndProgress();
-  }, [router]);
+  }, [router]); // Dependency: router (for navigation)
 
-  // ... (localStorageからprogressを読み込むuseEffect はそのまま) ...
+  /**
+   * (Legacy?) Load 'courseProgress' from localStorage.
+   * This seems to be a remnant of a previous progress system.
+   */
   useEffect(() => {
     const savedProgress = JSON.parse(localStorage.getItem("courseProgress"));
     if (savedProgress) {
@@ -114,40 +136,50 @@ export default function RealCoursePage() {
       localStorage.setItem("courseProgress", JSON.stringify({}));
       setCourseProgress({});
     }
-  }, []);
+  }, []); // Runs once on mount
 
-  // ... (localStorageのhistoryを更新するuseEffect はそのまま) ...
+  /**
+   * Update 'history' in localStorage.
+   * Adds the current course to the user's viewing history.
+   */
   useEffect(() => {
-    if (!courseId) return;
+    if (!courseId) return; // Don't run if ID isn't ready
     let historyData = JSON.parse(localStorage.getItem("history") || "{}");
+    // Basic data migration if 'history' is an old array format
     if (Array.isArray(historyData)) {
       historyData = {};
     }
+    // Get history for the current debug user
     let userHistory = historyData[CURRENT_USERNAME] || [];
+    // Remove this courseId if it already exists (to move it to the front)
     userHistory = userHistory.filter(id => id !== courseId);
+    // Add this courseId to the beginning of the list
     userHistory.unshift(courseId);
     historyData[CURRENT_USERNAME] = userHistory;
+    // Save back to localStorage
     localStorage.setItem("history", JSON.stringify(historyData));
+    // Dispatch a custom event so other components (like a history sidebar) can update
     window.dispatchEvent(new Event("historyUpdated"));
-  }, [courseId]);
+  }, [courseId]); // Dependency: courseId
 
 
+  /**
+   * Saves learning time (in seconds) to the database.
+   * Calls a Supabase RPC (Remote Procedure Call) function 'increment_learning_time'.
+   * @param {number} seconds - The number of seconds to add to the user's total.
+   */
   const saveLearningTime = async (seconds) => {
-    // 0秒なら何もしない
-    if (seconds === 0) return;
+    if (seconds === 0) return; // Do nothing if no time has passed
 
     try {
-      // Supabaseの 'increment_learning_time' 関数を呼び出す
-      // { seconds_to_add: ... } がSQL関数に渡す引数です
+      // Call the SQL function 'increment_learning_time' defined in Supabase
       const { error } = await supabase.rpc('increment_learning_time', {
-        seconds_to_add: seconds
+        seconds_to_add: seconds // Pass the argument to the function
       });
 
       if (error) {
-        // 失敗した場合、コンソールにエラーを表示
         console.error("Failed to save learning time:", error.message);
       } else {
-        // 成功した場合
         console.log(`Saved ${seconds} seconds to Supabase.`);
       }
     } catch (error) {
@@ -155,159 +187,146 @@ export default function RealCoursePage() {
     }
   };
 
-  // ... (時間追跡のuseEffect はそのまま) ...
+  /**
+   * Learning time tracking effect.
+   * Sets up an interval to periodically save time and a listener to save time on page exit.
+   */
   useEffect(() => {
+    // Every 5 seconds, check if the video is playing and save the time
     const interval = setInterval(() => {
       if (isPlayingRef.current && sessionStartTimeRef.current) {
         const now = Date.now();
         const secondsElapsed = Math.floor((now - sessionStartTimeRef.current) / 1000);
         if (secondsElapsed > 0) {
           saveLearningTime(secondsElapsed);
+          // Reset the start time to now
           sessionStartTimeRef.current = now;
         }
       }
-    }, 5000);
+    }, 5000); // Run every 5000 ms
 
+    // This handler runs when the user closes the tab or navigates away
     const handleUnload = () => {
       if (isPlayingRef.current && sessionStartTimeRef.current) {
         const secondsElapsed = Math.floor((Date.now() - sessionStartTimeRef.current) / 1000);
-        saveLearningTime(secondsElapsed);
+        saveLearningTime(secondsElapsed); // Save any remaining time
         isPlayingRef.current = false;
       }
     };
+    // Add the listener
     window.addEventListener("beforeunload", handleUnload);
 
+    // Cleanup function: runs when the component unmounts
     return () => {
-      clearInterval(interval);
-      window.removeEventListener("beforeunload", handleUnload);
-      handleUnload();
+      clearInterval(interval); // Clear the interval
+      window.removeEventListener("beforeunload", handleUnload); // Remove the listener
+      handleUnload(); // Run one last time on unmount
     };
-  }, [currentUser]);
+  }, [currentUser]); // Dependency: currentUser (though it's constant)
 
-  // ... (handlePlay, handlePauseOrEnd 関数 はそのまま) ...
+  /**
+   * Video 'onPlay' event handler.
+   * Marks the video as playing and records the start time.
+   */
   const handlePlay = () => {
     isPlayingRef.current = true;
     sessionStartTimeRef.current = Date.now();
     console.log(`Video playing for ${currentUser}, starting timer...`);
   };
 
+  /**
+   * Video 'onPause' or 'onEnded' event handler.
+   * Calculates elapsed time, saves it, and marks the video as not playing.
+   */
   const handlePauseOrEnd = () => {
     if (isPlayingRef.current && sessionStartTimeRef.current) {
       const secondsElapsed = Math.floor((Date.now() - sessionStartTimeRef.current) / 1000);
-      saveLearningTime(secondsElapsed);
+      saveLearningTime(secondsElapsed); // Save the time
     }
+    // Reset the tracking refs
     isPlayingRef.current = false;
     sessionStartTimeRef.current = null;
     console.log(`Video paused/ended for ${currentUser}, stopping timer.`);
   };
 
 
-
+  /**
+   * Video 'onEnded' event handler.
+   * Marks the current lecture as complete in the database via a FastAPI endpoint.
+   */
   const markLectureAsComplete = async () => {
-    handlePauseOrEnd(); // ビデオの再生時間を保存（これは変更なし）
+    handlePauseOrEnd(); // First, save any remaining learning time
 
-    // ログイン中のユーザーか、現在の講義がなければ何もしない
-    if (!loggedInUser || !currentLecture) return;
+    if (!loggedInUser || !currentLecture) return; // Guards
 
-    const lectureIdToMark = currentLecture.id; // DBの 'id' (UUID)
+    const lectureIdToMark = currentLecture.id; // The UUID of the lecture
 
-    // ★ 既に完了済みリスト (Set) に含まれているかチェック
+    // Check our local 'completedLectures' Set first
     if (completedLectures.has(lectureIdToMark)) {
       console.log(`Lecture ${lectureIdToMark} is already marked as complete.`);
-      return; // 既に完了しているので何もしない
+      return; // Already done, no need to call API
     }
 
     try {
-      // ★ FastAPI の /progress/complete エンドポイントを呼び出す
+      // Call the FastAPI backend endpoint to mark as complete
       const endpoint = `http://localhost:8000/progress/complete/${loggedInUser.id}`;
       const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lecture_id: lectureIdToMark }), // ★ 'id' を 'lecture_id' として送信
+        body: JSON.stringify({ lecture_id: lectureIdToMark }), // Send the lecture ID
       });
 
       if (!response.ok) throw new Error("Failed to save progress");
 
-      // ★ 成功したら、ローカルの 'completedLectures' Set にもIDを追加
+      // On success, update our local state to match the database
       setCompletedLectures(prevSet => new Set(prevSet).add(lectureIdToMark));
 
       console.log(`Marked Lecture ${lectureIdToMark} as complete in DB.`);
-
-      // (オプション) バッジ獲得のロジックは、ProfilePage.jsx 側で計算する方が
-      // データが正確になるため、ここでのバッジ獲得ロジックは削除します。
 
     } catch (error) {
       console.error("Progress save error:", error);
     }
   };
-  // 'markLectureAsComplete' 内の 'courses.find' を削除
-  // const markLectureAsComplete = () => {
-  //   handlePauseOrEnd();
-  //   if (!currentLecture || !course) return;
-  //
-  //   // DBスキーマの `lecture_number` または `id` を使います
-  //   // ここでは `id` (UUID) を使うと仮定します
-  //   const lectureIdToMark = currentLecture.id;
-  //
-  //   let courseProgressData = JSON.parse(localStorage.getItem("courseProgress")) || {};
-  //
-  //   if (typeof courseProgressData[currentUser] !== "object") {
-  //     courseProgressData[currentUser] = {};
-  //   }
-  //   if (typeof courseProgressData[currentUser][courseId] !== "object") {
-  //     courseProgressData[currentUser][courseId] = { completedLectures: [] };
-  //   }
-  //   if (!Array.isArray(courseProgressData[currentUser][courseId].completedLectures)) {
-  //     courseProgressData[currentUser][courseId].completedLectures = [];
-  //   }
-  //
-  //   // 完了したレクチャーのID (UUID) を保存
-  //   if (!courseProgressData[currentUser][courseId].completedLectures.includes(lectureIdToMark)) {
-  //     courseProgressData[currentUser][courseId].completedLectures.push(lectureIdToMark);
-  //     console.log(`Marked Lecture ${lectureIdToMark} for Course ${courseId} as complete for ${CURRENT_USERNAME}.`);
-  //   }
-  //
-  //   // 'course.badge' 'course.totalLectures' を直接参照する
-  //   if (course) {
-  //     const totalLectures = course.total_lectures; // DBのカラム名に合わせる
-  //     const completedCount = courseProgressData[currentUser][courseId].completedLectures.length;
-  //     const progress = (completedCount / totalLectures) * 100;
-  //
-  //     if (progress >= 100 && !courseProgressData[currentUser][courseId].badgeEarned) {
-  //       courseProgressData[currentUser][courseId].badgeEarned = course.badge;
-  //       console.log(`Congratulations ${currentUser}! You earned the badge for ${course.name}!`);
-  //     }
-  //   }
-  //
-  //   localStorage.setItem("courseProgress", JSON.stringify(courseProgressData));
-  //   setCourseProgress(courseProgressData);
-  // };
 
-  // ... (handleFeedbackToggle, handleFeedbackChange, handleSendFeedback はそのまま) ...
+  /**
+   * Toggles the visibility of the feedback panel.
+   */
   const handleFeedbackToggle = () => {
     setIsFeedbackActive((prev) => !prev);
   };
 
+  /**
+   * Updates the 'feedbackText' state as the user types in the textarea.
+   */
   const handleFeedbackChange = (e) => {
     setFeedbackText(e.target.value);
   };
 
+  /**
+   * Submits the user's feedback (rating and text) to the 'reviews' table in Supabase.
+   */
   const handleSendFeedback = async () => {
-      // Guard against no rating or empty text
-      if (feedbackRating === 0) {
-        alert("Please select a star rating.");
-        return;
-      }
-      if (!feedbackText.trim() || !courseId || !currentLecture) return;
+    // --- Validation ---
+    if (feedbackRating === 0) {
+      alert("Please select a star rating.");
+      return;
+    }
+    if (!feedbackText.trim() || !courseId || !currentLecture) {
+      alert("Please write a comment.");
+      return;
+    }
+    // --- End Validation ---
 
-      try {
-        // Get the currently logged-in user's ID
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error("You must be logged in to leave a review.");
+    try {
+      // Get the current user again (just in case)
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("You must be logged in to leave a review.");
 
-        // Use 'upsert' to either create a new review or update an old one
-        const { error } = await supabase
-          .from('reviews')
+      // 'upsert' = UPDATE or INSERT
+      // It tries to update a row based on 'onConflict'
+      // If no matching row is found, it inserts a new one.
+      const { error } = await supabase
+          .from('reviews') // Target the 'reviews' table
           .upsert({
             course_id: courseId,
             lecture_id: currentLecture.id,
@@ -315,44 +334,54 @@ export default function RealCoursePage() {
             rating: feedbackRating,
             user_id: user.id
           }, {
-            // This tells Supabase to update if a row
-            // already exists with this user_id and lecture_id
+            // Define the conflict: a user can only have one review
+            // for one specific lecture.
             onConflict: 'user_id, lecture_id'
           });
 
-        if (error) {
-          throw new Error(`Failed to submit review: ${error.message}`);
-        }
-
-        // Success! Reset the UI
-        setFeedbackText("");
-        setFeedbackRating(0);
-        setIsFeedbackActive(false);
-
-        setShowFeedbackAlert(true);
-        setTimeout(() => {
-          setShowFeedbackAlert(false);
-        }, 3000);
-
-      } catch (error) {
-        console.error(error);
-        alert(error.message); // Show the error to the user
+      if (error) {
+        throw new Error(`Failed to submit review: ${error.message}`);
       }
-    };
-    
-  // ... (handleChangeLecture はそのまま) ...
+
+      // --- Success ---
+      // Reset the form
+      setFeedbackText("");
+      setFeedbackRating(0);
+      setIsFeedbackActive(false); // Close the panel
+
+      // Show the success alert
+      setShowFeedbackAlert(true);
+      setTimeout(() => {
+        setShowFeedbackAlert(false);
+      }, 3000); // Hide after 3 seconds
+
+    } catch (error) {
+      console.error(error);
+      alert(error.message); // Show error to the user
+    }
+  };
+
+  /**
+   * Handles changing the 'currentLecture'.
+   * Sets a loading state to allow for a fade-out/fade-in animation.
+   * @param {object} lec - The lecture object to switch to.
+   */
   const handleChangeLecture = (lec) => {
-    if (lec.id === currentLecture?.id) return;
-    setIsChangingLecture(true);
+    if (lec.id === currentLecture?.id) return; // Don't reload if it's the same lecture
+
+    setIsChangingLecture(true); // Trigger fade-out
+
+    // Wait for the fade-out animation (300ms) before changing the content
     setTimeout(() => {
-      setCurrentLecture(lec);
-      setIsChangingLecture(false);
+      setCurrentLecture(lec); // Change the lecture
+      setIsChangingLecture(false); // Trigger fade-in
     }, 300);
   };
 
-  // --- ▼ レンダリング部分の変更 ▼ ---
 
-  // 4. ローディング中とデータが無い場合の表示を追加
+  // --- ▼ RENDER LOGIC ▼ ---
+
+  // 1. Show loading state while fetching
   if (isLoading) {
     return (
         <PageTransition>
@@ -363,13 +392,15 @@ export default function RealCoursePage() {
     );
   }
 
-  // 5. 'course' が fetch 失敗で null の場合の表示
+  // 2. Show error if course fetch failed
   if (!course) {
     return <p style={{ padding: "2rem" }}>Course not found.</p>;
   }
 
+  // 3. Render the full page
   return (
       <PageTransition>
+        {/* Feedback Submitted Alert */}
         {showFeedbackAlert && (
             <div className={styles.feedbackAlert}>
               Feedback Submitted! Thank you.
@@ -377,6 +408,7 @@ export default function RealCoursePage() {
         )}
 
         <div className={styles.container}>
+          {/* --- Sidebar (Lecture List) --- */}
           <aside className={styles.sidebar}>
             <Breadcrumb
                 items={[
@@ -386,41 +418,45 @@ export default function RealCoursePage() {
             />
             <h2> {course.name}: Lectures</h2>
             <ul>
-              {/* 'course.lectures' が存在するかチェック (DBから取得) */}
+              {/* Map over the sorted lectures fetched from Supabase */}
               {course.lectures && course.lectures.length > 0 ? (
                   course.lectures.map((lec) => (
                       <li
-                          key={lec.id} // DBのユニークID (UUID) を使う
+                          key={lec.id} // Use the database UUID as the key
                           className={lec.id === currentLecture?.id ? styles.activeLecture : ""}
                           onClick={() => handleChangeLecture(lec)}
                       >
-                        {lec.title}
+                        {lec.title} {/* Display lecture title */}
                       </li>
                   ))
               ) : (
-                  <li>No lectures available</li>
+                  <li>No lectures available</li> // Fallback
               )}
             </ul>
           </aside>
 
+          {/* --- Main Content (Video & Info) --- */}
           <main className={`${styles.mainContent} ${isChangingLecture ? styles.loading : ""}`}>
             {currentLecture ? (
                 <>
                   <h1 className={styles.lecLabel}>{currentLecture.title}</h1>
+                  {/* Video Player */}
                   <div className={styles.lectureVideoContainer}>
+                    {/* Log the video URL for debugging */}
                     {console.log("Current lecture video URL:", currentLecture?.video)}
                     <video
-                        src={currentLecture.video}
+                        src={currentLecture.video} // Video source from DB
                         controls
                         className={styles.lectureVideo}
-                        onPlay={handlePlay}
-                        onPause={handlePauseOrEnd}
-                        onEnded={markLectureAsComplete}
-                        key={currentLecture.id} // DBのUUIDを使う
+                        onPlay={handlePlay} // Track play events
+                        onPause={handlePauseOrEnd} // Track pause events
+                        onEnded={markLectureAsComplete} // Mark complete on end
+                        key={currentLecture.id} // Re-mount the video element when the lecture ID changes
                     >
                       Your browser does not support the video tag.
                     </video>
                   </div>
+                  {/* Lecture Text/Description */}
                   <div className={styles.lectureText}>
                     <h2 className={styles.DesLabel}>Description</h2>
                     <p>
@@ -432,22 +468,24 @@ export default function RealCoursePage() {
                     </p>
                   </div>
 
+                  {/* Feedback Section (in-line) */}
                   <div className={`${styles.feedbackSection} ${isFeedbackActive ? styles.active : ""}`}>
                     <h2>Give Feedback for {currentLecture?.title}</h2>
-                    
-                    {/* --- ADDED STAR RATING --- */}
+
+                    {/* Star Rating Input */}
                     <div className={styles.starRating}>
                       {[1, 2, 3, 4, 5].map((star) => (
-                        <span
-                          key={star}
-                          className={star <= feedbackRating ? styles.starFilled : styles.starEmpty}
-                          onClick={() => setFeedbackRating(star)}
-                        >
+                          <span
+                              key={star}
+                              className={star <= feedbackRating ? styles.starFilled : styles.starEmpty}
+                              onClick={() => setFeedbackRating(star)}
+                          >
                           ★
                         </span>
                       ))}
                     </div>
 
+                    {/* Feedback Text Area */}
                     <textarea
                         className={styles.feedbackTextArea}
                         value={feedbackText}
@@ -457,15 +495,17 @@ export default function RealCoursePage() {
                     <button className={styles.feedbackSendButton} onClick={handleSendFeedback}>Send</button>
                   </div>
 
-                  {/* materials の map も 'currentLecture.materials' (jsonb) をそのまま使える */}
+                  {/* Lecture Materials Section */}
+                  {/* Check if the 'materials' JSONB array has items */}
                   {currentLecture.materials?.length > 0 && (
                       <div className={styles.lectureMaterials}>
                         <h2 className={styles.MaterialLabel}>Lecture Materials</h2>
                         <ul>
+                          {/* Map over the materials array */}
                           {currentLecture.materials.map((mat, index) => (
                               <li key={index}>
                                 <a href={mat.link} target="_blank" rel="noopener noreferrer">
-                                  {mat.name}
+                                  {mat.name} {/* Link name */}
                                 </a>
                               </li>
                           ))}
@@ -474,16 +514,19 @@ export default function RealCoursePage() {
                   )}
                 </>
             ) : (
-                <p>No lecture selected.</p>
+                <p>No lecture selected.</p> // Fallback if no lecture is selected
             )}
           </main>
         </div>
 
-        {/* ... (feedbackButtonContainer, feedbackSection の JSX はそのまま) ... */}
+        {/* --- Floating Feedback Button --- */}
         <div className={styles.feedbackButtonContainer} onClick={handleFeedbackToggle}>
           <img src="/icons/chat-icon.png" alt="chat icon" style={{ width: '35px', height: '35px' }} />
         </div>
 
+        {/* --- Floating Feedback Panel --- */}
+        {/* Note: This appears to be a duplicate/older version of the feedback section */}
+        {/* It does not include the star rating functionality. */}
         <div className={`${styles.feedbackSection} ${isFeedbackActive ? styles.active : ""}`}>
           <h2>Give Feedback</h2>
           <textarea

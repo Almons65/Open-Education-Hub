@@ -1,8 +1,15 @@
 import React from "react";
+// Import Next.js's hook for navigation
 import { useRouter } from "next/navigation";
-import styles from "./Breadcrumb.module.css"; 
+// Import CSS module for locally-scoped styles
+import styles from "./Breadcrumb.module.css";
 
-// Define and export the Breadcrumb component, which accepts 'items' as a prop
+/**
+ * Breadcrumb component
+ * Renders a navigation breadcrumb trail.
+ * @param {Array} items - An array of objects, where each object has a 'label' and an optional 'href'.
+ * Example: [{ label: "Home", href: "/" }, { label: "Profile" }]
+ */
 export default function Breadcrumb({ items }) {
   // Initialize the router hook to get access to the router object
   const router = useRouter();
@@ -18,34 +25,34 @@ export default function Breadcrumb({ items }) {
 
   // Render the breadcrumb navigation
   return (
-    // Use the <nav> element for semantic HTML (it's a navigation block)
-    // Apply the 'breadcrumb' class from our CSS module
-    <nav className={styles.breadcrumb}>
-      {/* Map over the 'items' array to create each breadcrumb link and separator */}
-      {items.map((item, index) => (
-        // Use React.Fragment to group elements without adding an extra node to the DOM
-        // 'key' is required for each item in a list for React to track them
-        <React.Fragment key={index}>
-          {/* This <span> holds the breadcrumb item's text (label) */}
-          <span
-            // Apply the base 'breadcrumbItem' class
-            // Conditionally add the 'link' class if 'item.href' exists
-            className={`${styles.breadcrumbItem} ${item.href ? styles.link : ''}`}
-            // Add an onClick handler
-            // It only calls handleClick if 'item.href' exists
-            onClick={() => item.href && handleClick(item.href)}
-          >
-            {/* Display the text label for the item */}
-            {item.label}
+      // Use the <nav> element for semantic HTML (it's a navigation block)
+      // Apply the 'breadcrumb' class from our CSS module
+      <nav className={styles.breadcrumb}>
+        {/* Map over the 'items' array to create each breadcrumb link and separator */}
+        {items.map((item, index) => (
+            // Use React.Fragment to group elements without adding an extra node to the DOM
+            // 'key' is required for each item in a list for React to track them
+            <React.Fragment key={index}>
+              {/* This <span> holds the breadcrumb item's text (label) */}
+              <span
+                  // Apply the base 'breadcrumbItem' class
+                  // Conditionally add the 'link' class if 'item.href' exists (making it clickable)
+                  className={`${styles.breadcrumbItem} ${item.href ? styles.link : ''}`}
+                  // Add an onClick handler
+                  // It only calls handleClick if 'item.href' exists
+                  onClick={() => item.href && handleClick(item.href)}
+              >
+            {/* Display the text label for the item (e.g., "Home", "Profile") */}
+                {item.label}
           </span>
-          {/* Conditionally render the separator */}
-          {/* Only add a separator if this is NOT the last item in the array */}
-          {index < items.length - 1 && (
-            // This <span> holds the separator character (e.g., '>')
-            <span className={styles.breadcrumbSeparator}> &gt; </span>
-          )}
-        </React.Fragment>
-      ))}
-    </nav>
+              {/* Conditionally render the separator */}
+              {/* Only add a separator if this is NOT the last item in the array */}
+              {index < items.length - 1 && (
+                  // This <span> holds the separator character (e.g., '>')
+                  <span className={styles.breadcrumbSeparator}> &gt; </span>
+              )}
+            </React.Fragment>
+        ))}
+      </nav>
   );
 }
