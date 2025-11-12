@@ -71,6 +71,10 @@ class ProgressRequest(BaseModel):
     """Model for marking lecture completion."""
     lecture_id: uuid.UUID
 
+class DecorationUpdate(BaseModel):
+    """Model for updating user's equipped decoration."""
+    equipped: Optional[str] = None
+
 
 # ============================================================
 # 4. Root endpoint (for connection check)
@@ -96,6 +100,8 @@ async def get_user_profile(username: str):
 
     user_data = user_query.data[0]
     user_id = user_data["id"]
+    rank_query = supabase.table("user_rankings").select("rank").eq("id", user_id).execute()
+    user_rank = rank_query.data[0]['rank'] if rank_query.data else None
 
     # 2. Fetch related user data
     decorations_query = supabase.table("decorations").select("unlocked, equipped").eq("user_id", user_id).execute()
@@ -110,6 +116,7 @@ async def get_user_profile(username: str):
     profile_response = {
         "user": user_data,
         "learningTime": user_data.get("learning_time", 0),
+        "rank": user_rank,
         "decorations": decorations_query.data[0] if decorations_query.data else {"unlocked": [], "equipped": None},
         "favorites": [f["course_id"] for f in favorites_query.data],
         "history": [h["course_id"] for h in history_query.data],
@@ -153,6 +160,28 @@ async def update_user_avatar(user_id: str, avatar: AvatarUpdate):
     query = supabase.table("users").update(avatar.dict()).eq("id", user_id).execute()
     if not query.data:
         raise HTTPException(status_code=400, detail="Failed to update avatar")
+
+    return query.data[0]
+
+@app.patch("/profile/decoration/{user_id}")
+async def update_user_decoration(user_id: str, decoration: DecorationUpdate):
+    """Upsert the user's equipped decoration."""
+
+    update_data = {
+        "user_id": user_id,
+        "equipped": decoration.equipped
+    }
+
+    # Use "UPSERT":
+    # on_conflict="user_id": If user_id already exists...
+    # ...update the 'equipped' column with update_data.
+    # If user_id does not exist, insert as a new row.
+    query = supabase.table("decorations") \
+        .upsert(update_data, on_conflict="user_id") \
+        .execute()
+
+    if not query.data:
+        raise HTTPException(status_code=400, detail="Failed to update decoration")
 
     return query.data[0]
 

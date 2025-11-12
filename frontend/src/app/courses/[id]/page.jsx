@@ -1,4 +1,3 @@
-// "use client" is removed, making this a Server Component by default
 import CourseDetail from "../components/CourseDetail.jsx"; // Import the client component to display details
 import { supabase } from "@/lib/supabaseClient"; // Import the Supabase client for database access
 
@@ -10,7 +9,7 @@ import { supabase } from "@/lib/supabaseClient"; // Import the Supabase client f
 // Make the component asynchronous to use 'await' for data fetching
 export default async function CoursePage({ params }) {
     // Get the 'id' from the URL parameters (e.g., /courses/[id])
-    const { id: courseId } = params; // Destructure and rename 'id' to 'courseId'
+    const { id: courseId } = await params; // Destructure and rename 'id' to 'courseId'
 
     // Fetch a single course from Supabase
     const { data: course, error } = await supabase

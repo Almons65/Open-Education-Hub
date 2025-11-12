@@ -11,13 +11,6 @@ import styles from "./home.module.css";
 // Import the Supabase client for database interactions
 import { supabase } from "@/lib/supabaseClient";
 
-// --- DEBUGGING CONSTANTS (Commented out) ---
-// const CURRENT_USERNAME = "User1";
-// const CURRENT_USERNAME = "User2";
-// const CURRENT_USERNAME = "User3";
-// const CURRENT_USERNAME = "User4";
-// --- END DEBUGGING ---
-
 export default function HomePage() {
   // State to track if the sidebar is open or closed (true/false)
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -47,42 +40,6 @@ export default function HomePage() {
     Biology: false,
     Calculus: false,
   });
-
-
-  // --- OLD HARDCODED DATA (Commented out) ---
-  // const courses = [
-  //   { id: "AAA001", name: "Introduction to Programming", difficulty: "Beginner", subjects: ["Python"], totalLectures: 3, badge: "/badges/ITP_badge.png" },
-  //   ...
-  // ];
-
-
-  // --- OLD LOCALSTORAGE PROGRESS LOGIC (Commented out) ---
-  // State to hold the progress for *only the current user*
-  // const [courseProgress, setCourseProgress] = useState({});
-  //
-  // This useEffect runs once when the component first mounts
-  // useEffect(() => {
-  //   const allProgress = JSON.parse(localStorage.getItem("courseProgress")) || {};
-  //   const userProgress = allProgress[CURRENT_USERNAME] || {};
-  //   setCourseProgress(userProgress);
-  // }, []);
-  //
-  // This useEffect sets up listeners to keep progress in sync across tabs
-  // useEffect(() => {
-  //   const handleStorageChange = () => {
-  //     const allProgress = JSON.parse(localStorage.getItem("courseProgress")) || {};
-  //     const userProgress = allProgress[CURRENT_USERNAME] || {};
-  //     setCourseProgress(userProgress);
-  //   };
-  //   window.addEventListener('storage', handleStorageChange);
-  //   window.addEventListener('focus', handleStorageChange);
-  //
-  //   return () => {
-  //     window.removeEventListener('storage', handleStorageChange);
-  //     window.removeEventListener('focus', handleStorageChange);
-  //   };
-  // }, []);
-  // --- END OLD LOGIC ---
 
 
   // --- API Data States ---
@@ -217,18 +174,6 @@ export default function HomePage() {
     // 6. Calculate the final percentage
     return (completedCount / totalLectures) * 100;
   };
-
-  // --- OLD LOCALSTORAGE-BASED CALCULATION (Commented out) ---
-  // const calculateProgress = (courseId) => {
-  //   const course = courses.find((course) => course.id === courseId);
-  //   const totalLectures = course ? course.totalLectures : 0;
-  //   if (totalLectures === 0) return 0;
-  //
-  //   const completedLectures = courseProgress[courseId]?.completedLectures || [];
-  //   const progress = (completedLectures.length / totalLectures) * 100;
-  //   return progress;
-  // };
-  // --- END OLD CALCULATION ---
 
   /**
    * Effect to create the animated background particles.

@@ -14,7 +14,7 @@ import { supabase } from "@/lib/supabaseClient";
 // --- UserHoverCard Component ---
 // A pop-up card component that shows detailed user info on hover.
 // The 'user' prop is now data from the 'user_rankings' Supabase view.
-function UserHoverCard({ user, onViewProfile }) {
+function UserHoverCard({ user, onViewProfile, achievementCount }) {
 
   // Helper function to format total seconds into "Xh Ym" string
   const formatTime = (totalSeconds) => {
@@ -40,7 +40,9 @@ function UserHoverCard({ user, onViewProfile }) {
 
   // Placeholder function to get the CSS class for an avatar decoration
   const getDecorationClass = (decorationId) => {
-    // (Decoration logic needs to be implemented based on new DB structure)
+    if (decorationId === "gold_decoration") return styles.goldDecoration;
+    if (decorationId === "silver_decoration") return styles.silverDecoration;
+    if (decorationId === "bronze_decoration") return styles.bronzeDecoration;
     return '';
   };
 
@@ -56,7 +58,11 @@ function UserHoverCard({ user, onViewProfile }) {
         <div className={styles.hoverCardAvatarSection}>
           <div className={styles.hoverCardAvatarWrapper}>
             {/* Avatar decoration (e.g., wreath) */}
-            <div className={`${styles.hoverCardAvatarDecoration} ${getDecorationClass(null)}`}></div>
+            <div className={`${styles.hoverCardAvatarDecoration} ${getDecorationClass(
+                user.rank === 1 ? "gold_decoration" :
+                    user.rank === 2 ? "silver_decoration" :
+                        user.rank === 3 ? "bronze_decoration" : null
+            )}`}></div>
             {/* Conditionally render the user's avatar image */}
             {user.avatar_url ? (
                 <img src={user.avatar_url} alt={user.name} className={styles.hoverCardAvatar} />
@@ -83,7 +89,7 @@ function UserHoverCard({ user, onViewProfile }) {
             <div className={styles.hoverCardStatItem}>
               <span className={styles.hoverCardStatLabel}>Achievements</span>
               {/* (Achievements stat is currently hardcoded) */}
-              <span className={styles.hoverCardStatValue}>N/A</span>
+              <span className={styles.hoverCardStatValue}>{achievementCount}</span>
             </div>
             <div className={styles.hoverCardStatItem}>
               <span className={styles.hoverCardStatLabel}>Joined</span>
@@ -100,6 +106,7 @@ function UserHoverCard({ user, onViewProfile }) {
 export default function RankingPage() {
   // State to store the array of user ranking data
   const [rankings, setRankings] = useState([]);
+  const [achievementCounts, setAchievementCounts] = useState({});
   // State to track loading status
   const [isLoading, setIsLoading] = useState(true);
   // State for sidebar toggle
@@ -129,30 +136,50 @@ export default function RankingPage() {
     setParticles(randomizedParticles);
   }, []); // Empty array ensures this runs only once
 
-  // Effect to fetch ranking data from Supabase on mount
   useEffect(() => {
-    const fetchRankings = async () => {
-      setIsLoading(true); // Set loading state to true before fetching
+    const fetchData = async () => {
+      setIsLoading(true);
 
-      // Query the 'user_rankings' view/table from Supabase
-      const { data, error } = await supabase
-          .from('user_rankings')
-          .select('*') // Select all columns from the view
-          .order('rank', { ascending: true }); // Sort by rank, 1st place first
+      try {
+        const [rankingsResult, countsResult] = await Promise.all([
+          supabase
+              .from('user_rankings')
+              .select('*')
+              .order('rank', { ascending: true }),
 
-      if (error) {
-        // Handle fetch error
-        console.error("Error fetching rankings:", error);
+          supabase.rpc('count_achievements_by_user')
+        ]);
+
+        if (rankingsResult.error) {
+          console.error("Error fetching rankings:", rankingsResult.error);
+          setRankings([]);
+        } else {
+          setRankings(rankingsResult.data);
+        }
+
+        if (countsResult.error) {
+          console.error("Error fetching achievement counts:", countsResult.error);
+          setAchievementCounts({});
+        } else {
+
+          const countsMap = {};
+          for (const item of countsResult.data) {
+            countsMap[item.user_id_col] = item.count_col;
+          }
+          setAchievementCounts(countsMap);
+        }
+
+      } catch (err) {
+        console.error("Error fetching page data:", err);
         setRankings([]);
-      } else {
-        // On success, store the data in state
-        setRankings(data);
+        setAchievementCounts({});
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false); // Set loading state to false after fetching
     };
 
-    fetchRankings();
-  }, []); // Empty array ensures this runs only once
+    fetchData();
+  }, []);
 
   // Helper function to format seconds to "Xh Ym"
   const formatTime = (totalSeconds) => {
@@ -174,10 +201,7 @@ export default function RankingPage() {
   // Handles clicking on a user's name or avatar
   const handleViewProfile = (e, username) => {
     if (e) e.preventDefault(); // Prevent default link/button behavior
-    // Store the target username in localStorage
-    localStorage.setItem("viewing_profile", username);
-    // Navigate to the profile page (which will read localStorage)
-    router.push('/profile');
+    router.push(`/profile?view=${username}`);
   };
 
   // --- Render the component's JSX (HTML) ---
@@ -250,50 +274,64 @@ export default function RankingPage() {
                 </tr>
                 </thead>
                 <tbody>
-                {/* Map over the fetched ranking data */}
                 {rankings.map((user) => (
                     <tr key={user.id}>
-
-                      {/* Rank Cell */}
                       <td className={styles.rankCell}>
-                        {/* Display the rank number */}
-                        <span className={`${styles.rank} ${
-                            // Apply gold/silver/bronze styles for top 3
-                            user.rank === 1 ? styles.gold :
-                                user.rank === 2 ? styles.silver :
-                                    user.rank === 3 ? styles.bronze : ''
-                        }`}>
-                      {user.rank}
-                    </span>
+        <span
+            className={`${styles.rank} ${
+                user.rank === 1
+                    ? styles.gold
+                    : user.rank === 2
+                        ? styles.silver
+                        : user.rank === 3
+                            ? styles.bronze
+                            : ""
+            }`}
+        >
+          {user.rank}
+        </span>
                       </td>
 
-                      {/* User Cell */}
                       <td className={styles.userCell}>
-                        {/* Clickable avatar wrapper */}
-                        <div className={styles.avatarWrapper} onClick={(e) => handleViewProfile(e, user.username)}>
-                          {/* (Decoration logic is a placeholder) */}
-                          <div className={`${styles.avatarDecoration} ${getDecorationClass(null)}`}></div>
-                          {/* Show avatar image or fallback initial */}
+                        <div
+                            className={styles.avatarWrapper}
+                            onClick={(e) => handleViewProfile(e, user.username)}
+                        >
+                          <div
+                              className={`${styles.avatarDecoration} ${getDecorationClass(
+                                  user.rank === 1
+                                      ? "gold_decoration"
+                                      : user.rank === 2
+                                          ? "silver_decoration"
+                                          : user.rank === 3
+                                              ? "bronze_decoration"
+                                              : null
+                              )}`}
+                          ></div>
                           {user.avatar_url ? (
-                              <img src={user.avatar_url} alt={user.username} className={styles.userAvatar} />
+                              <img
+                                  src={user.avatar_url}
+                                  alt={user.username}
+                                  className={styles.userAvatar}
+                              />
                           ) : (
                               <div className={styles.userAvatarPlaceholder}>
                                 {user.username.charAt(0).toUpperCase()}
                               </div>
                           )}
                         </div>
-                        {/* Clickable username */}
-                        <span onClick={(e) => handleViewProfile(e, user.username)}>{user.name}</span>
+                        <span onClick={(e) => handleViewProfile(e, user.username)}>
+          {user.name}
+        </span>
 
-                        {/* The hidden hover card (appears on CSS hover) */}
-                        <UserHoverCard user={user} onViewProfile={handleViewProfile} />
+                        <UserHoverCard
+                            user={user}
+                            onViewProfile={handleViewProfile}
+                            achievementCount={achievementCounts[user.id] || 0}
+                        />
                       </td>
 
-                      {/* Time Cell */}
-                      <td className={styles.timeCell}>
-                        {/* Display the formatted learning time */}
-                        {formatTime(user.learning_time)}
-                      </td>
+                      <td className={styles.timeCell}>{formatTime(user.learning_time)}</td>
                     </tr>
                 ))}
                 </tbody>

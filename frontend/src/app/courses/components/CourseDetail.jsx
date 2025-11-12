@@ -11,13 +11,6 @@ import styles from "./courseDetail.module.css";
 // Import the Supabase client for database interactions
 import { supabase } from "@/lib/supabaseClient";
 
-// --- DEBUGGING CONSTANT ---
-//const CURRENT_USERNAME = "User1";
-const CURRENT_USERNAME = "User2";
-//const CURRENT_USERNAME = "User3";
-//const CURRENT_USERNAME = "User4";
-// --- END DEBUGGING ---
-
 
 // Define and export the CourseDetail component, which receives a 'course' object as a prop
 export default function CourseDetail({ course }) {
@@ -71,35 +64,6 @@ export default function CourseDetail({ course }) {
       router.push(`/courses/${course.id}/Real_course`);
     }
 
-    // --- OLD LOCALSTORAGE LOGIC (Commented out) ---
-    // // Safety check: do nothing if the course prop isn't available
-    // if (!course) return;
-    //
-    // // --- Update the user-specific "Recently Viewed" history ---
-    //
-    // // 1. Get the main history object from localStorage (or an empty object)
-    // let historyData = JSON.parse(localStorage.getItem("history") || "{}");
-    // // 2. Fix for old data: If 'historyData' is an array (from a bug), reset it
-    // if (Array.isArray(historyData)) { historyData = {}; }
-    //
-    // // 3. Get the personal history list for *this* user
-    // let userHistory = historyData[CURRENT_USERNAME] || [];
-    //
-    // // 4. Remove any old instance of this course ID to prevent duplicates
-    // userHistory = userHistory.filter(id => id !== course.id);
-    // // 5. Add the current course ID to the *front* of the list (as most recent)
-    // userHistory.unshift(course.id);
-    //
-    // // 6. Put the user's updated list back into the main history object
-    // historyData[CURRENT_USERNAME] = userHistory;
-    // // 7. Save the updated main object back to localStorage
-    // localStorage.setItem("history", JSON.stringify(historyData));
-    //
-    // // 8. Dispatch a custom event to notify other components (like ProfilePage) to refresh
-    // window.dispatchEvent(new Event("historyUpdated"));
-    //
-    // // 9. Navigate the user to the actual course-taking page
-    // router.push(`/courses/${course.id}/Real_course`);
   };
 
   // State to store the currently authenticated user's information

@@ -12,18 +12,6 @@ import styles from "./profile.module.css";
 import { supabase } from "@/lib/supabaseClient";
 
 
-// --- OLD MOCK DATA (Commented out) ---
-// The username of the person currently logged in.
-// const LOGGED_IN_USERNAME = "User2";
-//
-// // A mock database of user information. In a real app, this would be fetched.
-// const USERS_DATA = {
-//   User1: { name: "User1", username: "user_01", email: "user1@example.com", joined: "Nov 2, 2025", bio: "A passionate learner and explorer." },
-//   ...
-// };
-// --- END OLD MOCK DATA ---
-
-
 /**
  * A reusable dropdown component.
  * @param {object} props - Component props.
@@ -140,6 +128,7 @@ export default function ProfilePage() {
   const [unlockedDecorations, setUnlockedDecorations] = useState([]);
   // State for the currently equipped decoration ID
   const [equippedDecoration, setEquippedDecoration] = useState(null);
+  const [rank, setRank] = useState(null);
 
   // This state is crucial. It stores *which profile we are currently viewing* (e.g., "user_02").
   // It starts as 'null' to indicate we haven't checked the URL yet.
@@ -159,7 +148,7 @@ export default function ProfilePage() {
   // State to hold all lectures (for progress calculation)
   const [lectures, setLectures] = useState([]);
   // State to hold the viewed user's progress (array of completed lecture IDs)
-  const [profileProgress, setProfileProgress] = useState({});
+  const [profileProgress, setProfileProgress] = useState([]);
 
   /**
    * Effect: Fetches *all* lectures from the backend.
@@ -312,6 +301,7 @@ export default function ProfilePage() {
         setFavorites(data.favorites || []); // Set favorite course IDs
         setHistory(data.history || []); // Set history course IDs
         setBadges(data.badges || []); // Set earned badge objects
+        setRank(data.rank || null);
         setLearningTime(data.learningTime || 0); // Set learning time
         setProfileProgress(data.progress || []); // Set completed lecture IDs
 
@@ -621,7 +611,49 @@ export default function ProfilePage() {
   // A boolean to check if we are viewing our own profile
   // Used to show/hide edit buttons
   const isViewingOwnProfile = loggedInUser && loggedInUser.profile.username === currentUsername;
+  let allAchievements = [...badges];
 
+  if (rank === 1) {
+    allAchievements.unshift(MEDAL_REWARDS.gold.badge); //1st
+  } else if (rank === 2) {
+    allAchievements.unshift(MEDAL_REWARDS.silver.badge); // 2nd
+  } else if (rank === 3) {
+    allAchievements.unshift(MEDAL_REWARDS.bronze.badge); // 3rd
+  }
+
+  if (courses.length > 0 && lectures.length > 0) {
+
+    for (const course of courses) {
+      const progress = calculateProgress(course.id);
+
+      if (progress >= 100) {
+
+        const alreadyHasBadge = allAchievements.some(b => b.id === course.id);
+
+        if (!alreadyHasBadge) {
+          const courseBadge = {
+            id: course.id,
+            url: course.badge,
+            name: course.name
+          };
+
+          allAchievements.push(courseBadge);
+        }
+      }
+    }
+  }
+
+  const displayableDecorations = new Set(unlockedDecorations);
+
+  if (rank === 1) {
+    displayableDecorations.add(MEDAL_REWARDS.gold.decoration.id);
+  } else if (rank === 2) {
+    displayableDecorations.add(MEDAL_REWARDS.silver.decoration.id);
+  } else if (rank === 3) {
+    displayableDecorations.add(MEDAL_REWARDS.bronze.decoration.id);
+  }
+
+  const decorationSelectorList = Array.from(displayableDecorations);
   // --- Loading State Render ---
   // If 'currentUsername' is still null, we are still waiting for EFFECT 1
   // to run and figure out who to load. Show a loading message.
@@ -657,10 +689,10 @@ export default function ProfilePage() {
                 className={styles.backToProfileBtn}
                 onClick={() => {
                   // Navigate back to our own profile URL
-                  router.replace("/profile?view=me");
+                  router.replace("/ranking");
                 }}
             >
-              ← Back to My Profile
+              ← Back to Ranking
             </button>
         )}
 
@@ -784,12 +816,12 @@ export default function ProfilePage() {
                       </div>
 
                       <p className={styles.profileBio}>{user.bio}</p>
-
-                      <div className={styles.emailWrapper}>
-                        <img src="/icons/email-icon.png" alt="email icon" className={styles.emailIcon} />
-                        <p className={styles.profileEmail}>{user.email}</p>
-                      </div>
-
+                      {isViewingOwnProfile && (
+                        <div className={styles.emailWrapper}>
+                          <img src="/icons/email-icon.png" alt="email icon" className={styles.emailIcon} />
+                          <p className={styles.profileEmail}>{user.email}</p>
+                        </div>
+                      )}
                       {/* Show "Edit Profile" button ONLY if it's our profile */}
                       {isViewingOwnProfile && (
                           <div className={styles.profileActions}>
@@ -827,7 +859,7 @@ export default function ProfilePage() {
                             </button>
 
                             {/* Map over UNLOCKED decorations */}
-                            {unlockedDecorations.map(decoId => (
+                            {decorationSelectorList.map(decoId => (
                                 <button
                                     key={decoId}
                                     // Add 'decorationActive' class if this is the equipped one
@@ -857,19 +889,17 @@ export default function ProfilePage() {
               {/* Section 2: Achievements (Center) */}
               <div className={styles.achievementContainer}>
                 <h3 className={styles.achievementTitle}>Achievements</h3>
-                {/* Show a message if no badges are earned */}
-                {badges.length === 0 ? (
+                {allAchievements.length === 0 ? (
                     <p>No achievements yet</p>
                 ) : (
-                    // Otherwise, create a grid of badges
                     <div className={styles.badgeGrid}>
-                      {badges.map((badge, index) => (
-                          <div className={styles.badgeCard} key={index}>
+                      {allAchievements.map((badge, index) => (
+
+                          <div className={styles.badgeCard} key={badge.id || index}>
                             <img
                                 src={badge.url}
                                 alt={badge.name}
                                 className={styles.badgeImage}
-                                // Fallback image in case the src is broken
                                 onError={(e) => e.target.src = 'https://placehold.co/100x100/eee/aaa?text=Badge'}
                             />
                             <p className={styles.badgeLabel}>{badge.name}</p>

@@ -250,43 +250,72 @@ export default function RealCoursePage() {
   };
 
 
-  /**
-   * Video 'onEnded' event handler.
-   * Marks the current lecture as complete in the database via a FastAPI endpoint.
-   */
   const markLectureAsComplete = async () => {
-    handlePauseOrEnd(); // First, save any remaining learning time
+        handlePauseOrEnd();
 
-    if (!loggedInUser || !currentLecture) return; // Guards
+        if (!loggedInUser || !currentLecture || !course) return;
 
-    const lectureIdToMark = currentLecture.id; // The UUID of the lecture
+        const lectureIdToMark = currentLecture.id; // DBの 'id' (UUID)
+        if (completedLectures.has(lectureIdToMark)) {
+          console.log(`Lecture ${lectureIdToMark} is already marked as complete.`);
+          return;
+        }
 
-    // Check our local 'completedLectures' Set first
-    if (completedLectures.has(lectureIdToMark)) {
-      console.log(`Lecture ${lectureIdToMark} is already marked as complete.`);
-      return; // Already done, no need to call API
-    }
+        try {
+          const endpoint = `http://localhost:8000/progress/complete/${loggedInUser.id}`;
+          const response = await fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ lecture_id: lectureIdToMark }), // 'id' を 'lecture_id' として送信
+          });
 
-    try {
-      // Call the FastAPI backend endpoint to mark as complete
-      const endpoint = `http://localhost:8000/progress/complete/${loggedInUser.id}`;
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lecture_id: lectureIdToMark }), // Send the lecture ID
-      });
+          if (!response.ok) throw new Error("Failed to save progress");
 
-      if (!response.ok) throw new Error("Failed to save progress");
+          const newCompletedSet = new Set(completedLectures).add(lectureIdToMark);
+          setCompletedLectures(newCompletedSet);
 
-      // On success, update our local state to match the database
-      setCompletedLectures(prevSet => new Set(prevSet).add(lectureIdToMark));
+          console.log(`Marked Lecture ${lectureIdToMark} as complete in DB.`);
 
-      console.log(`Marked Lecture ${lectureIdToMark} as complete in DB.`);
 
-    } catch (error) {
-      console.error("Progress save error:", error);
-    }
-  };
+          const totalLecturesInCourse = course.lectures.length;
+
+          let completedCount = 0;
+          for (const lec of course.lectures) {
+            if (newCompletedSet.has(lec.id)) {
+              completedCount++;
+            }
+          }
+
+          if (completedCount === totalLecturesInCourse) {
+            console.log(`Course ${course.id} completed! Checking for badge...`);
+
+            // ★ 6. Supabase (user_achievements) にバッジを UPSERT
+            //    (あなたのテーブル構造に合わせてカラム名を修正)
+            const { error: badgeError } = await supabase
+                .from('user_achievements')
+                .upsert({
+                  user_id: loggedInUser.id,
+                  achievement_id: course.id,  // ★ カラム名を 'achievement_id' に修正
+                  name: course.name,          // ★ カラム名を 'name' に修正
+                  image_url: course.badge     // ★ カラム名を 'image_url' に修正
+                  // 'id' (int8 PK) と 'achieved_at' は自動で入力される
+                }, {
+                  onConflict: 'user_id, achievement_id' // ★ 競合条件を (user_id, achievement_id) に指定
+                });
+
+            if (badgeError) {
+              console.error("Failed to save course badge:", badgeError);
+            } else {
+              console.log(`Badge for ${course.name} saved to user_achievements!`);
+
+              window.dispatchEvent(new Event("achievementsUpdated"));
+            }
+          }
+
+        } catch (error) {
+          console.error("Progress save error:", error);
+        }
+      };
 
   /**
    * Toggles the visibility of the feedback panel.
