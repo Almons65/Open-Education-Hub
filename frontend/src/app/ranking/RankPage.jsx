@@ -1,15 +1,22 @@
 "use client";
 
+// Import React hooks for state, side effects, and refs
 import { useState, useEffect, useRef } from "react";
+// Import Next.js hook for navigation
 import { useRouter } from "next/navigation";
+// Import custom components
 import PageTransition from "@/app/components/PageTransition";
+// Import CSS module for styling
 import styles from "./ranking.module.css";
-import { supabase } from "@/lib/supabaseClient"; // Supabaseをインポート
+// Import the Supabase client
+import { supabase } from "@/lib/supabaseClient";
 
-// --- UserHoverCard Component (修正) ---
-// propsで受け取る user オブジェクトがDBのものに変わります
-function UserHoverCard({ user, onViewProfile }) {
+// --- UserHoverCard Component ---
+// A pop-up card component that shows detailed user info on hover.
+// The 'user' prop is now data from the 'user_rankings' Supabase view.
+function UserHoverCard({ user, onViewProfile, achievementCount }) {
 
+  // Helper function to format total seconds into "Xh Ym" string
   const formatTime = (totalSeconds) => {
     if (!totalSeconds) totalSeconds = 0;
     const hours = Math.floor(totalSeconds / 3600);
@@ -17,6 +24,7 @@ function UserHoverCard({ user, onViewProfile }) {
     return `${hours}h ${minutes}m`;
   };
 
+  // Helper function to format a date string (e.g., "Nov 12, 2025")
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
     try {
@@ -30,34 +38,49 @@ function UserHoverCard({ user, onViewProfile }) {
     }
   };
 
+  // Placeholder function to get the CSS class for an avatar decoration
   const getDecorationClass = (decorationId) => {
-    // (デコレーションのロジックはDB移行に伴い別途実装が必要です)
+    if (decorationId === "gold_decoration") return styles.goldDecoration;
+    if (decorationId === "silver_decoration") return styles.silverDecoration;
+    if (decorationId === "bronze_decoration") return styles.bronzeDecoration;
     return '';
   };
 
   return (
+      // Main card container, triggers profile view on click
       <div
           className={styles.hoverCard}
           onClick={(e) => onViewProfile(e, user.username)}
       >
+        {/* Decorative header background */}
         <div className={styles.hoverCardHeaderBackground}></div>
+        {/* Section for the user's avatar */}
         <div className={styles.hoverCardAvatarSection}>
           <div className={styles.hoverCardAvatarWrapper}>
-            <div className={`${styles.hoverCardAvatarDecoration} ${getDecorationClass(null)}`}></div>
+            {/* Avatar decoration (e.g., wreath) */}
+            <div className={`${styles.hoverCardAvatarDecoration} ${getDecorationClass(
+                user.rank === 1 ? "gold_decoration" :
+                    user.rank === 2 ? "silver_decoration" :
+                        user.rank === 3 ? "bronze_decoration" : null
+            )}`}></div>
+            {/* Conditionally render the user's avatar image */}
             {user.avatar_url ? (
                 <img src={user.avatar_url} alt={user.name} className={styles.hoverCardAvatar} />
             ) : (
+                // Fallback placeholder (first initial) if no avatar
                 <div className={styles.hoverCardAvatarPlaceholder}>
                   {user.name.charAt(0).toUpperCase()}
                 </div>
             )}
           </div>
         </div>
+        {/* Main content section with user details */}
         <div className={styles.hoverCardBody}>
           <h3 className={styles.hoverCardName}>{user.name || user.username}</h3>
           <p className={styles.hoverCardUsername}>@{user.username}</p>
           <p className={styles.hoverCardBio}>{user.bio || "No bio available."}</p>
 
+          {/* Stats section (Time, Achievements, Joined) */}
           <div className={styles.hoverCardStats}>
             <div className={styles.hoverCardStatItem}>
               <span className={styles.hoverCardStatLabel}>Learning Time</span>
@@ -65,7 +88,8 @@ function UserHoverCard({ user, onViewProfile }) {
             </div>
             <div className={styles.hoverCardStatItem}>
               <span className={styles.hoverCardStatLabel}>Achievements</span>
-              <span className={styles.hoverCardStatValue}>N/A</span>
+              {/* (Achievements stat is currently hardcoded) */}
+              <span className={styles.hoverCardStatValue}>{achievementCount}</span>
             </div>
             <div className={styles.hoverCardStatItem}>
               <span className={styles.hoverCardStatLabel}>Joined</span>
@@ -80,12 +104,19 @@ function UserHoverCard({ user, onViewProfile }) {
 // --- RankingPage Component (Main) ---
 
 export default function RankingPage() {
+  // State to store the array of user ranking data
   const [rankings, setRankings] = useState([]);
+  const [achievementCounts, setAchievementCounts] = useState({});
+  // State to track loading status
   const [isLoading, setIsLoading] = useState(true);
+  // State for sidebar toggle
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  // State for background particle animation
   const [particles, setParticles] = useState([]);
+  // Next.js router for navigation
   const router = useRouter();
 
+  // Navigation links for the sidebar
   const menuItemsPrimary = [
     { label: "Home", icon: "/icons/home.png", path: "/home" },
     { label: "Profile", icon: "/icons/user.png", path: "/profile" },
@@ -93,9 +124,9 @@ export default function RankingPage() {
     { label: "Logout", icon: "/icons/logout.png", path: "/auth" },
   ];
 
-  // 背景パーティクルの useEffect
+  // Effect to create randomized background particles on mount
   useEffect(() => {
-    const baseParticles = [ /* ... particle positions ... */ ]; // あなたの元のパーティクルデータをここに追加
+    const baseParticles = [ { top: "10%", left: "20%" }, { top: "30%", left: "70%" }, { top: "50%", left: "40%" }, { top: "70%", left: "15%" }, { top: "80%", left: "80%" }, { top: "20%", left: "50%" } ]; // Your particle data
     const randomizedParticles = baseParticles.map((p) => ({
       ...p,
       size: 5 + Math.random() * 15,
@@ -103,30 +134,54 @@ export default function RankingPage() {
       color: `rgba(0,0,0,${0.1 + Math.random() * 0.3})`,
     }));
     setParticles(randomizedParticles);
-  }, []);
+  }, []); // Empty array ensures this runs only once
 
-  // ランキング取得の useEffect
   useEffect(() => {
-    const fetchRankings = async () => {
+    const fetchData = async () => {
       setIsLoading(true);
 
-      const { data, error } = await supabase
-          .from('user_rankings')
-          .select('*')
-          .order('rank', { ascending: true });
+      try {
+        const [rankingsResult, countsResult] = await Promise.all([
+          supabase
+              .from('user_rankings')
+              .select('*')
+              .order('rank', { ascending: true }),
 
-      if (error) {
-        console.error("Error fetching rankings:", error);
+          supabase.rpc('count_achievements_by_user')
+        ]);
+
+        if (rankingsResult.error) {
+          console.error("Error fetching rankings:", rankingsResult.error);
+          setRankings([]);
+        } else {
+          setRankings(rankingsResult.data);
+        }
+
+        if (countsResult.error) {
+          console.error("Error fetching achievement counts:", countsResult.error);
+          setAchievementCounts({});
+        } else {
+
+          const countsMap = {};
+          for (const item of countsResult.data) {
+            countsMap[item.user_id_col] = item.count_col;
+          }
+          setAchievementCounts(countsMap);
+        }
+
+      } catch (err) {
+        console.error("Error fetching page data:", err);
         setRankings([]);
-      } else {
-        setRankings(data);
+        setAchievementCounts({});
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
 
-    fetchRankings();
+    fetchData();
   }, []);
 
+  // Helper function to format seconds to "Xh Ym"
   const formatTime = (totalSeconds) => {
     if (!totalSeconds) totalSeconds = 0;
     const hours = Math.floor(totalSeconds / 3600);
@@ -134,18 +189,20 @@ export default function RankingPage() {
     return `${hours}h ${minutes}m`;
   };
 
+  // Placeholder for avatar decoration styles
   const getDecorationClass = (decorationId) => {
-    // (このロジックはDB移行に伴い別途実装が必要です)
+    // (This logic needs to be implemented based on the new DB structure)
     if (decorationId === "gold_decoration") return styles.goldDecoration;
     if (decorationId === "silver_decoration") return styles.silverDecoration;
     if (decorationId === "bronze_decoration") return styles.bronzeDecoration;
     return '';
   };
 
+  // Handles clicking on a user's name or avatar
   const handleViewProfile = (e, username) => {
-    if (e) e.preventDefault();
-    // This now sends the user to the correct URL,
-    // which your ProfilePage.jsx knows how to read.
+
+    if (e) e.preventDefault(); // Prevent default link/button behavior
+
     router.push(`/profile?view=${username}`);
   };
 
@@ -153,13 +210,14 @@ export default function RankingPage() {
 
   return (
       <PageTransition>
-        {/* --- Sidebar (中身を元に戻しました) --- */}
+        {/* --- Standard Sidebar --- */}
         <div className={`${styles.sidebar} ${sidebarOpen ? styles.active : ""}`}>
           <header>
             <div className={styles.imageText}>
               <img src="/icons/OEH_logo.png" alt="OEH Logo" />
               <span className={styles.main}>Open Education Hub</span>
             </div>
+            {/* Hamburger toggle button */}
             <div
                 className={`${styles.toggleBtn} ${sidebarOpen ? styles.active : ""}`}
                 onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -169,6 +227,7 @@ export default function RankingPage() {
               <span className={styles.bar3}></span>
             </div>
           </header>
+          {/* Sidebar navigation links */}
           <ul className={styles.menuLinks}>
             {menuItemsPrimary.map((item) => (
                 <li key={item.label} className={styles.navLink}>
@@ -197,13 +256,17 @@ export default function RankingPage() {
         </div>
 
         {/* --- Main Content (Leaderboard) --- */}
+        {/* Apply class to shift content when sidebar is open */}
         <div className={`${styles.container} ${sidebarOpen ? styles.sidebarActive : ""}`}>
           <h2 className={styles.title}>Leaderboard</h2>
+          {/* Show loading message */}
           {isLoading ? (
               <p>Loading rankings...</p>
           ) : rankings.length === 0 ? (
+              // Show message if no rankings are found
               <p>No learning records yet.</p>
           ) : (
+              // The main leaderboard table
               <table className={styles.rankingTable}>
                 <thead>
                 <tr>
@@ -215,39 +278,62 @@ export default function RankingPage() {
                 <tbody>
                 {rankings.map((user) => (
                     <tr key={user.id}>
-
-                      {/* Rank Cell */}
                       <td className={styles.rankCell}>
-                    <span className={`${styles.rank} ${
-                        user.rank === 1 ? styles.gold :
-                            user.rank === 2 ? styles.silver :
-                                user.rank === 3 ? styles.bronze : ''
-                    }`}>
-                      {user.rank}
-                    </span>
+        <span
+            className={`${styles.rank} ${
+                user.rank === 1
+                    ? styles.gold
+                    : user.rank === 2
+                        ? styles.silver
+                        : user.rank === 3
+                            ? styles.bronze
+                            : ""
+            }`}
+        >
+          {user.rank}
+        </span>
                       </td>
 
-                      {/* User Cell */}
                       <td className={styles.userCell}>
-                        <div className={styles.avatarWrapper} onClick={(e) => handleViewProfile(e, user.username)}>
-                          <div className={`${styles.avatarDecoration} ${getDecorationClass(null)}`}></div>
+                        <div
+                            className={styles.avatarWrapper}
+                            onClick={(e) => handleViewProfile(e, user.username)}
+                        >
+                          <div
+                              className={`${styles.avatarDecoration} ${getDecorationClass(
+                                  user.rank === 1
+                                      ? "gold_decoration"
+                                      : user.rank === 2
+                                          ? "silver_decoration"
+                                          : user.rank === 3
+                                              ? "bronze_decoration"
+                                              : null
+                              )}`}
+                          ></div>
                           {user.avatar_url ? (
-                              <img src={user.avatar_url} alt={user.username} className={styles.userAvatar} />
+                              <img
+                                  src={user.avatar_url}
+                                  alt={user.username}
+                                  className={styles.userAvatar}
+                              />
                           ) : (
                               <div className={styles.userAvatarPlaceholder}>
                                 {user.username.charAt(0).toUpperCase()}
                               </div>
                           )}
                         </div>
-                        <span onClick={(e) => handleViewProfile(e, user.username)}>{user.name}</span>
+                        <span onClick={(e) => handleViewProfile(e, user.username)}>
+          {user.name}
+        </span>
 
-                        <UserHoverCard user={user} onViewProfile={handleViewProfile} />
+                        <UserHoverCard
+                            user={user}
+                            onViewProfile={handleViewProfile}
+                            achievementCount={achievementCounts[user.id] || 0}
+                        />
                       </td>
 
-                      {/* Time Cell */}
-                      <td className={styles.timeCell}>
-                        {formatTime(user.learning_time)}
-                      </td>
+                      <td className={styles.timeCell}>{formatTime(user.learning_time)}</td>
                     </tr>
                 ))}
                 </tbody>

@@ -201,7 +201,7 @@
   background-color: #f9f9f9;
   border-radius: 8px;
   width: 350px;
-  height: 250px;
+  /*height: 250px;*/
   padding: 15px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
   visibility: hidden; /* Hidden by default */
@@ -215,7 +215,7 @@
 .feedbackSection.active {
   visibility: visible; /* Make it visible */
   opacity: 1; /* Make it solid */
-  transform: translateY(0); /* Move it to its final position */
+  transform: translateY(0);
 }
 
 /* Title inside the feedback form */

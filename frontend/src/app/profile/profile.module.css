@@ -906,7 +906,7 @@
 
 /* This button appears when viewing another user's profile */
 .backToProfileBtn {
-  position: fixed; /* Stays on screen */
+  position: absolute; /* Stays on screen */
   top: 50px;
   left: 250px; /* Positioned just outside the sidebar */
   z-index: 200; /* Stays on top */
@@ -1074,67 +1074,56 @@
 }
 
 
-/* profile.module.css の末尾に追加 */
 
 .dropItem {
-  /* Flexbox を使ってレイアウト */
   display: flex;
   align-items: center;
-  gap: 12px; /* 動画とテキストの間隔 */
-  /* padding, cursor などは既存の .dropItem のものを継承 */
+  gap: 12px;
 }
 
 .dropItemVideo {
-  width: 90px;  /* 動画コンテナの幅 */
-  height: 50px; /* 16:9 のアスペクト比 */
+  width: 90px;
+  height: 50px;
   border-radius: 4px;
-  overflow: hidden;      /* はみ出しを隠す */
-  background-color: #e9ecef; /* 動画読み込み中の背景色 */
-  flex-shrink: 0;     /* 動画が縮まないようにする */
+  overflow: hidden;
+  background-color: #e9ecef;
+  flex-shrink: 0;
 }
 
 .dropItemVideoPlayer {
   width: 100%;
   height: 100%;
-  object-fit: cover; /* コンテナを埋め尽くす（トリミングされる） */
+  object-fit: cover;
 }
 
 .dropItemContent {
-  flex: 1; /* 残りのスペースをすべて使う */
-  min-width: 0; /* Flexbox でのテキスト省略（...）のための重要なおまじない */
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
 }
 
 .dropItemName {
   font-weight: 500;
-  white-space: nowrap;         /* テキストを折り返さない */
-  overflow: hidden;            /* はみ出しを隠す */
-  text-overflow: ellipsis;     /* 長すぎる場合は "..." で省略 */
-  margin-bottom: 4px;          /* 名前とプログレスバーの間隔 */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 4px;
 }
 
-/* profile.module.css の末尾に追加 */
+
 
 .dropContent {
-  /* 既存のスタイル（display: none; など）に加えて... */
 
-  /* ★★★ リスト表示のための重要なスタイル ★★★ */
-
-  /* 最大の高さを指定 (例: 350px) */
-  /* これを超えるとスクロールバーが表示されます */
   max-height: 350px;
 
-  /* 縦方向に内容がはみ出たら、スクロールバーを自動で表示 */
   overflow-y: auto;
 
-  /* ★★★ */
 
-  /* 以下はレイアウトを整えるための推奨スタイル */
-  display: none; /* .dropContentOpen で上書きされます */
+  display: none;
   flex-direction: column;
-  gap: 4px; /* 各お気に入り項目の間隔 */
-  padding: 8px; /* ドロップダウン内の余白 */
+  gap: 4px;
+  padding: 8px;
   background-color: #ffffff;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
@@ -1143,5 +1132,5 @@
 }
 
 .dropContentOpen {
-  display: flex; /* このクラスで .dropContent の display: none を上書きして表示 */
+  display: flex;
 }
