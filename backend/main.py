@@ -11,12 +11,15 @@ import os
 # 1. Load environment variables and connect to Supabase
 # ============================================================
 
-load_dotenv()
+
+load_dotenv() # Load environment variables (SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
 
+
 # Ensure that SERVICE_KEY (not anon key) is used in backend
+
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
 # ============================================================
@@ -38,9 +41,11 @@ app.add_middleware(
     allow_headers=["*"],  # Allow all headers
 )
 
+
 # ============================================================
 # 3. Define Pydantic models for request validation
 # ============================================================
+
 
 class NewUser(BaseModel):
     """Model for new user registration."""

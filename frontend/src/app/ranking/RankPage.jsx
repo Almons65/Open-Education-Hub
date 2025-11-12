@@ -200,7 +200,9 @@ export default function RankingPage() {
 
   // Handles clicking on a user's name or avatar
   const handleViewProfile = (e, username) => {
+
     if (e) e.preventDefault(); // Prevent default link/button behavior
+
     router.push(`/profile?view=${username}`);
   };
 
