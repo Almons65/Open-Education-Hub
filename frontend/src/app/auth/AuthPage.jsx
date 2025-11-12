@@ -549,7 +549,7 @@ const LoadingButton = ({ loading, text }) => {
             {/* Conditionally render the loading GIF wrapper */}
             {showGif && (
                 <div className={styles["loading-gif"]}>
-                    <img src="/infinite_loading.gif" alt="loading" />
+                    <img src="/icons/infinite_loading.gif" alt="loading" />
                 </div>
             )}
         </div>

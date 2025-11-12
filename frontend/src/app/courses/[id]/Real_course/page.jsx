@@ -468,33 +468,6 @@ export default function RealCoursePage() {
                     </p>
                   </div>
 
-                  {/* Feedback Section (in-line) */}
-                  <div className={`${styles.feedbackSection} ${isFeedbackActive ? styles.active : ""}`}>
-                    <h2>Give Feedback for {currentLecture?.title}</h2>
-
-                    {/* Star Rating Input */}
-                    <div className={styles.starRating}>
-                      {[1, 2, 3, 4, 5].map((star) => (
-                          <span
-                              key={star}
-                              className={star <= feedbackRating ? styles.starFilled : styles.starEmpty}
-                              onClick={() => setFeedbackRating(star)}
-                          >
-                          ★
-                        </span>
-                      ))}
-                    </div>
-
-                    {/* Feedback Text Area */}
-                    <textarea
-                        className={styles.feedbackTextArea}
-                        value={feedbackText}
-                        onChange={handleFeedbackChange}
-                        placeholder="Your feedback..."
-                    />
-                    <button className={styles.feedbackSendButton} onClick={handleSendFeedback}>Send</button>
-                  </div>
-
                   {/* Lecture Materials Section */}
                   {/* Check if the 'materials' JSONB array has items */}
                   {currentLecture.materials?.length > 0 && (
@@ -519,16 +492,21 @@ export default function RealCoursePage() {
           </main>
         </div>
 
-        {/* --- Floating Feedback Button --- */}
-        <div className={styles.feedbackButtonContainer} onClick={handleFeedbackToggle}>
-          <img src="/icons/chat-icon.png" alt="chat icon" style={{ width: '35px', height: '35px' }} />
-        </div>
-
-        {/* --- Floating Feedback Panel --- */}
-        {/* Note: This appears to be a duplicate/older version of the feedback section */}
-        {/* It does not include the star rating functionality. */}
         <div className={`${styles.feedbackSection} ${isFeedbackActive ? styles.active : ""}`}>
-          <h2>Give Feedback</h2>
+          <h2>Feedback for {currentLecture?.title || "this lecture"}</h2>
+
+          <div className={styles.starRating}>
+            {[1, 2, 3, 4, 5].map((star) => (
+                <span
+                    key={star}
+                    className={star <= feedbackRating ? styles.starFilled : styles.starEmpty}
+                    onClick={() => setFeedbackRating(star)}
+                >
+                ★
+              </span>
+            ))}
+          </div>
+
           <textarea
               className={styles.feedbackTextArea}
               value={feedbackText}
@@ -536,6 +514,10 @@ export default function RealCoursePage() {
               placeholder="Your feedback..."
           />
           <button className={styles.feedbackSendButton} onClick={handleSendFeedback}>Send</button>
+        </div>
+        {/* --- Floating Feedback Button --- */}
+        <div className={styles.feedbackButtonContainer} onClick={handleFeedbackToggle}>
+          <img src="/icons/chat-icon.png" alt="chat icon" style={{ width: '35px', height: '35px' }} />
         </div>
 
       </PageTransition>
