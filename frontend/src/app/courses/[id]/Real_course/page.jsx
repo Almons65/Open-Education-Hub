@@ -546,7 +546,7 @@ export default function RealCoursePage() {
         </div>
         {/* --- Floating Feedback Button --- */}
         <div className={styles.feedbackButtonContainer} onClick={handleFeedbackToggle}>
-          <img src="/icons/chat-icon.png" alt="chat icon" style={{ width: '35px', height: '35px' }} />
+          <img src="/icons/feedback.png" alt="chat icon" style={{ width: '35px', height: '35px' }} />
         </div>
 
       </PageTransition>
